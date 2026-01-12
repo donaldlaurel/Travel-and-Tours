@@ -1,0 +1,235 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import type { Hotel } from "@/lib/types"
+
+const AMENITIES = [
+  "WiFi",
+  "Pool",
+  "Spa",
+  "Gym",
+  "Restaurant",
+  "Bar",
+  "Room Service",
+  "Parking",
+  "Beach Access",
+  "Air Conditioning",
+  "Pet Friendly",
+  "Business Center",
+  "Kids Club",
+  "Airport Shuttle",
+  "Concierge",
+]
+
+interface HotelFormProps {
+  hotel?: Hotel
+}
+
+export function HotelForm({ hotel }: HotelFormProps) {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const [formData, setFormData] = useState({
+    name: hotel?.name || "",
+    description: hotel?.description || "",
+    address: hotel?.address || "",
+    city: hotel?.city || "",
+    country: hotel?.country || "Philippines",
+    star_rating: hotel?.star_rating?.toString() || "3",
+    price_per_night: hotel?.price_per_night?.toString() || "",
+    main_image: hotel?.main_image || "",
+    amenities: hotel?.amenities || [],
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    const supabase = createClient()
+
+    const hotelData = {
+      name: formData.name,
+      description: formData.description || null,
+      address: formData.address,
+      city: formData.city,
+      country: formData.country,
+      star_rating: Number.parseInt(formData.star_rating),
+      price_per_night: Number.parseFloat(formData.price_per_night),
+      main_image: formData.main_image || null,
+      amenities: formData.amenities,
+    }
+
+    if (hotel) {
+      const { error } = await supabase.from("hotels").update(hotelData).eq("id", hotel.id)
+
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+    } else {
+      const { error } = await supabase.from("hotels").insert(hotelData)
+
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+    }
+
+    router.push("/admin/hotels")
+    router.refresh()
+  }
+
+  const handleAmenityChange = (amenity: string, checked: boolean) => {
+    if (checked) {
+      setFormData({ ...formData, amenities: [...formData.amenities, amenity] })
+    } else {
+      setFormData({ ...formData, amenities: formData.amenities.filter((a) => a !== amenity) })
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="name">Hotel Name *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="star_rating">Star Rating *</Label>
+          <Select
+            value={formData.star_rating}
+            onValueChange={(value) => setFormData({ ...formData, star_rating: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <SelectItem key={star} value={star.toString()}>
+                  {star} Star{star > 1 ? "s" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          rows={4}
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="address">Address *</Label>
+        <Input
+          id="address"
+          value={formData.address}
+          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          required
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="city">City *</Label>
+          <Input
+            id="city"
+            value={formData.city}
+            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="country">Country *</Label>
+          <Input
+            id="country"
+            value={formData.country}
+            onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="price_per_night">Price per Night (₱) *</Label>
+          <Input
+            id="price_per_night"
+            type="number"
+            min="0"
+            step="0.01"
+            value={formData.price_per_night}
+            onChange={(e) => setFormData({ ...formData, price_per_night: e.target.value })}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="main_image">Main Image URL</Label>
+          <Input
+            id="main_image"
+            type="url"
+            value={formData.main_image}
+            onChange={(e) => setFormData({ ...formData, main_image: e.target.value })}
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Amenities</Label>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {AMENITIES.map((amenity) => (
+            <div key={amenity} className="flex items-center space-x-2">
+              <Checkbox
+                id={amenity}
+                checked={formData.amenities.includes(amenity)}
+                onCheckedChange={(checked) => handleAmenityChange(amenity, checked as boolean)}
+              />
+              <label htmlFor={amenity} className="text-sm cursor-pointer">
+                {amenity}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        <Button type="submit" disabled={loading}>
+          {loading ? "Saving..." : hotel ? "Update Hotel" : "Create Hotel"}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => router.back()}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  )
+}

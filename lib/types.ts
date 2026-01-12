@@ -45,8 +45,10 @@ export interface Profile {
   full_name: string | null
   avatar_url: string | null
   phone: string | null
+  role: "user" | "admin"
   created_at: string
   updated_at: string
+  email?: string
 }
 
 export interface Booking {
