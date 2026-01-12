@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { Suspense, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
@@ -13,24 +13,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Lock, AlertCircle } from "lucide-react"
 
-function ErrorFromParams({ onError }: { onError: (error: string | null) => void }) {
-  const searchParams = useSearchParams()
-  const error = searchParams.get("error")
-
-  if (error === "unauthorized") {
-    onError("You do not have admin access.")
-  }
-
-  return null
-}
-
-function AdminLoginForm() {
+export default function AdminLoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const errorParam = params.get("error")
+      if (errorParam === "unauthorized") {
+        setError("You do not have admin access.")
+      }
+    }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,10 +83,6 @@ function AdminLoginForm() {
           <CardDescription>Sign in to access the admin dashboard</CardDescription>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={null}>
-            <ErrorFromParams onError={setError} />
-          </Suspense>
-
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
@@ -140,8 +135,4 @@ function AdminLoginForm() {
       </Card>
     </div>
   )
-}
-
-export default function AdminLoginPage() {
-  return <AdminLoginForm />
 }
