@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Hotel } from "@/lib/types"
+import { ImageUpload, MultiImageUpload } from "@/components/admin/image-upload"
 
 const AMENITIES = [
   "WiFi",
@@ -51,6 +52,8 @@ export function HotelForm({ hotel }: HotelFormProps) {
     main_image: hotel?.main_image || "",
     amenities: hotel?.amenities || [],
   })
+
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -193,16 +196,23 @@ export function HotelForm({ hotel }: HotelFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="main_image">Main Image URL</Label>
-          <Input
-            id="main_image"
-            type="url"
+          <ImageUpload
+            label="Main Image"
             value={formData.main_image}
-            onChange={(e) => setFormData({ ...formData, main_image: e.target.value })}
-            placeholder="https://example.com/image.jpg"
+            onChange={(url) => setFormData({ ...formData, main_image: url })}
+            folder="hotels"
+            aspectRatio="video"
           />
         </div>
       </div>
+
+      <MultiImageUpload
+        label="Gallery Images"
+        values={galleryImages}
+        onChange={setGalleryImages}
+        folder="hotels"
+        maxImages={10}
+      />
 
       <div className="space-y-2">
         <Label>Amenities</Label>

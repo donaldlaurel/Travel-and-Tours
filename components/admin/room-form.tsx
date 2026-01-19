@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ImageUpload } from "@/components/admin/image-upload"
 
 const ROOM_AMENITIES = [
   "Air Conditioning",
@@ -220,16 +221,13 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="image_url">Room Image URL</Label>
-        <Input
-          id="image_url"
-          type="url"
-          value={formData.image_url}
-          onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-          placeholder="https://example.com/room-image.jpg"
-        />
-      </div>
+      <ImageUpload
+        label="Room Image"
+        value={formData.image_url}
+        onChange={(url) => setFormData({ ...formData, image_url: url })}
+        folder="rooms"
+        aspectRatio="video"
+      />
 
       <div className="space-y-2">
         <Label>Room Amenities</Label>
