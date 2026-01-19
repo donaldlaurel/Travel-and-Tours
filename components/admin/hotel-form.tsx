@@ -34,9 +34,10 @@ const AMENITIES = [
 
 interface HotelFormProps {
   hotel?: Hotel
+  existingGalleryImages?: string[]
 }
 
-export function HotelForm({ hotel }: HotelFormProps) {
+export function HotelForm({ hotel, existingGalleryImages = [] }: HotelFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,7 +54,7 @@ export function HotelForm({ hotel }: HotelFormProps) {
     amenities: hotel?.amenities || [],
   })
 
-  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [galleryImages, setGalleryImages] = useState<string[]>(existingGalleryImages)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,6 +75,8 @@ export function HotelForm({ hotel }: HotelFormProps) {
       amenities: formData.amenities,
     }
 
+    let hotelId = hotel?.id
+
     if (hotel) {
       const { error } = await supabase.from("hotels").update(hotelData).eq("id", hotel.id)
 
@@ -83,12 +86,35 @@ export function HotelForm({ hotel }: HotelFormProps) {
         return
       }
     } else {
-      const { error } = await supabase.from("hotels").insert(hotelData)
+      const { data, error } = await supabase.from("hotels").insert(hotelData).select("id").single()
 
       if (error) {
         setError(error.message)
         setLoading(false)
         return
+      }
+      hotelId = data.id
+    }
+
+    // Save gallery images
+    if (hotelId) {
+      // Delete existing gallery images
+      await supabase.from("hotel_images").delete().eq("hotel_id", hotelId)
+
+      // Insert new gallery images
+      if (galleryImages.length > 0) {
+        const imageRecords = galleryImages.map((url, index) => ({
+          hotel_id: hotelId,
+          image_url: url,
+          alt_text: `${formData.name} - Image ${index + 1}`,
+          display_order: index,
+        }))
+
+        const { error: imageError } = await supabase.from("hotel_images").insert(imageRecords)
+
+        if (imageError) {
+          console.error("Failed to save gallery images:", imageError.message)
+        }
       }
     }
 

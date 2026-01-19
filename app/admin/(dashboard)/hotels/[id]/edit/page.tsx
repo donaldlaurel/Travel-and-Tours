@@ -13,6 +13,15 @@ export default async function EditHotelPage({ params }: { params: Promise<{ id: 
     notFound()
   }
 
+  // Fetch existing gallery images
+  const { data: galleryImages } = await supabase
+    .from("hotel_images")
+    .select("image_url")
+    .eq("hotel_id", id)
+    .order("display_order", { ascending: true })
+
+  const existingGalleryImages = galleryImages?.map((img) => img.image_url) || []
+
   return (
     <div className="space-y-6">
       <div>
@@ -25,7 +34,7 @@ export default async function EditHotelPage({ params }: { params: Promise<{ id: 
           <CardTitle>Hotel Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <HotelForm hotel={hotel} />
+          <HotelForm hotel={hotel} existingGalleryImages={existingGalleryImages} />
         </CardContent>
       </Card>
     </div>
