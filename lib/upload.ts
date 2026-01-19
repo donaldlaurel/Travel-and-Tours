@@ -14,6 +14,13 @@ export async function uploadImage(
 ): Promise<UploadResult> {
   const supabase = createClient()
 
+  // Check if user is authenticated
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("You must be logged in to upload images")
+  }
+
   // Generate unique filename
   const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg"
   const fileName = customFileName 

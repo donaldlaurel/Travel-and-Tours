@@ -12,11 +12,11 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   const { user } = await requireAdmin()
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-muted/30 flex">
       <AdminSidebar />
-      <div className="lg:pl-64">
+      <div className="flex-1 flex flex-col">
         <AdminHeader user={user} />
-        <main className="p-6">{children}</main>
+        <main className="p-6 flex-1">{children}</main>
       </div>
     </div>
   )
