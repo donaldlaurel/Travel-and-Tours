@@ -41,7 +41,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
     : user.email?.[0]?.toUpperCase() || "A"
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-x-4 border-b border-border bg-background px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+    <header className="flex h-16 items-center gap-x-4 border-b border-border bg-background px-4 sm:gap-x-6 sm:px-6 lg:px-8">
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="lg:hidden">
