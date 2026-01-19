@@ -3,8 +3,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Shield, User } from "lucide-react"
+import { Shield, User, Edit } from "lucide-react"
 import { ToggleAdminRole } from "@/components/admin/toggle-admin-role"
+import { DeleteUserButton } from "@/components/admin/delete-user-button"
 import { UsersFilter } from "@/components/admin/users-filter"
 
 export default async function AdminUsersPage({
@@ -110,8 +111,19 @@ export default async function AdminUsersPage({
                             </span>
                           </td>
                           <td className="py-4">
-                            <div className="flex items-center justify-end">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" asChild>
+                                <Link href={`/admin/users/${profile.id}/edit`}>
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Link>
+                              </Button>
                               <ToggleAdminRole userId={profile.id} currentRole={profile.role} />
+                              <DeleteUserButton 
+                                userId={profile.id} 
+                                userName={profile.full_name || "Unknown"} 
+                                disabled={profile.role === "admin"}
+                              />
                             </div>
                           </td>
                         </tr>

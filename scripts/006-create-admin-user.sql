@@ -1,7 +1,7 @@
 -- IMPORTANT: Run this script AFTER creating the admin user via Supabase Auth
 -- 
 -- Default Admin Credentials:
--- Email: admin@tmjtravels.com
+-- Email: admin@tmjph.com
 -- Password: Admin@123456
 --
 -- Steps to create admin:
@@ -13,7 +13,7 @@
 UPDATE profiles 
 SET role = 'admin' 
 WHERE id = (
-  SELECT id FROM auth.users WHERE email = 'admin@tmjtravels.com'
+  SELECT id FROM auth.users WHERE email = 'admin@tmjph.com'
 );
 
 -- Alternative: If you need to create multiple admins, use this pattern:
