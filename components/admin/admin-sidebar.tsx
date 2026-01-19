@@ -32,11 +32,6 @@ export function AdminSidebar() {
   return (
     <div className="hidden lg:flex lg:w-64 lg:flex-col lg:min-h-screen">
       <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-background px-6 pb-4">
-        <div className="flex h-16 shrink-0 items-center">
-          <Link href="/admin">
-            <Image src="/images/image.png" alt="TMJ Travel and Tours" width={150} height={38} className="h-8 w-auto" />
-          </Link>
-        </div>
         <nav className="flex flex-1 flex-col">
           <ul role="list" className="flex flex-1 flex-col gap-y-7">
             <li>
