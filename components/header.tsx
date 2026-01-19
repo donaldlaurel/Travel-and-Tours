@@ -26,18 +26,6 @@ export function Header() {
           >
             Hotels
           </Link>
-          <Link
-            href="/deals"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Deals
-          </Link>
-          <Link
-            href="/destinations"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Destinations
-          </Link>
         </nav>
 
         <div className="flex items-center gap-2">
