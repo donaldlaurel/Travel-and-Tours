@@ -5,7 +5,7 @@ import { HotelInfo } from "@/components/hotel-info"
 import { RoomList } from "@/components/room-list"
 import { HotelReviews } from "@/components/hotel-reviews"
 import { BookingSidebar } from "@/components/booking-sidebar"
-import { getRoomAvailability, mergeRoomTypesWithAvailability } from "@/lib/availability"
+import { getRoomAvailability, mergeRoomTypesWithAvailability } from "@/lib/availability-server"
 import type { Metadata } from "next"
 
 interface PageProps {
