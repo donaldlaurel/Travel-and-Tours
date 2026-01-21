@@ -6,6 +6,7 @@ import { RoomList } from "@/components/room-list"
 import { HotelReviews } from "@/components/hotel-reviews"
 import { BookingSidebar } from "@/components/booking-sidebar"
 import { getRoomAvailability, mergeRoomTypesWithAvailability } from "@/lib/availability-server"
+import { format, addDays } from "date-fns"
 import type { Metadata } from "next"
 
 interface PageProps {
@@ -54,10 +55,16 @@ export default async function HotelDetailPage({ params, searchParams }: PageProp
   // Fetch room types
   const { data: roomTypesData } = await supabase.from("room_types").select("*").eq("hotel_id", id).order("base_price")
 
-  // Calculate room availability based on dates and existing bookings
+  // Default to today and tomorrow if no dates selected
+  const today = format(new Date(), "yyyy-MM-dd")
+  const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd")
+  const checkIn = search.checkIn || today
+  const checkOut = search.checkOut || tomorrow
+
+  // Always calculate room availability based on dates
   let roomTypes = roomTypesData || []
-  if (search.checkIn && search.checkOut && roomTypesData) {
-    const availability = await getRoomAvailability(id, search.checkIn, search.checkOut)
+  if (roomTypesData) {
+    const availability = await getRoomAvailability(id, checkIn, checkOut)
     roomTypes = mergeRoomTypesWithAvailability(roomTypesData, availability)
   }
 
@@ -103,8 +110,8 @@ export default async function HotelDetailPage({ params, searchParams }: PageProp
               <RoomList
                 roomTypes={roomTypes || []}
                 hotelId={hotel.id}
-                checkIn={search.checkIn}
-                checkOut={search.checkOut}
+                checkIn={checkIn}
+                checkOut={checkOut}
                 guests={search.guests ? Number.parseInt(search.guests) : 2}
               />
             </section>
@@ -121,8 +128,8 @@ export default async function HotelDetailPage({ params, searchParams }: PageProp
             <BookingSidebar
               hotel={hotel}
               roomTypes={roomTypes || []}
-              checkIn={search.checkIn}
-              checkOut={search.checkOut}
+              checkIn={checkIn}
+              checkOut={checkOut}
               guests={search.guests ? Number.parseInt(search.guests) : 2}
             />
           </aside>

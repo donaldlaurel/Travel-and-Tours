@@ -4,8 +4,8 @@ import { SearchForm } from "@/components/search-form"
 import { HotelFilters } from "@/components/hotel-filters"
 import { HotelList } from "@/components/hotel-list"
 import { HotelListSkeleton } from "@/components/hotel-list-skeleton"
-import { getHotelsLowestRatesForDate, getHotelsLowestRatesForRange } from "@/lib/availability-server"
-import { format } from "date-fns"
+import { getHotelsLowestRatesForRange } from "@/lib/availability-server"
+import { format, addDays } from "date-fns"
 import type { Hotel } from "@/lib/types"
 
 interface PageProps {
@@ -117,25 +117,21 @@ async function HotelResults({
     )
   }
 
-  // Determine the date(s) to check for pricing
+  // Default to today and tomorrow if no dates selected (1 night stay)
   const today = format(new Date(), "yyyy-MM-dd")
+  const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd")
   const checkIn = searchParams.checkIn || today
-  const checkOut = searchParams.checkOut
+  const checkOut = searchParams.checkOut || tomorrow
 
   // Get hotel IDs for price lookup
   const hotelIds = hotelsData?.map((h: Hotel) => h.id) || []
 
-  // Fetch lowest prices based on dates
-  let priceMap: Record<string, number | null> = {}
-  let showTotalPrice = false
-  if (checkOut && checkIn !== checkOut) {
-    // If we have a date range, get total price for the range
-    priceMap = await getHotelsLowestRatesForRange(hotelIds, checkIn, checkOut)
-    showTotalPrice = true
-  } else {
-    // Single date (today or check-in), get per-night rate
-    priceMap = await getHotelsLowestRatesForDate(hotelIds, checkIn)
-  }
+  // Always fetch prices for the date range (at least 1 night)
+  const priceMap = await getHotelsLowestRatesForRange(hotelIds, checkIn, checkOut)
+  
+  // Show total price only if user explicitly selected dates spanning more than 1 night
+  const nights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24))
+  const showTotalPrice = searchParams.checkIn && searchParams.checkOut && nights > 1
 
   // Process hotels to include lowest_price from room_rates
   const hotels = (hotelsData || []).map((hotel: Hotel) => ({

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { HotelCard } from "@/components/hotel-card"
-import { getHotelsLowestRatesForDate } from "@/lib/availability-server"
-import { format } from "date-fns"
+import { getHotelsLowestRatesForRange } from "@/lib/availability-server"
+import { format, addDays } from "date-fns"
 import type { Hotel } from "@/lib/types"
 
 export async function FeaturedHotels() {
@@ -13,12 +13,13 @@ export async function FeaturedHotels() {
     .order("star_rating", { ascending: false })
     .limit(6)
 
-  // Get today's date for price lookup
+  // Get today and tomorrow for 1-night price lookup
   const today = format(new Date(), "yyyy-MM-dd")
+  const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd")
   const hotelIds = hotelsData?.map((h: Hotel) => h.id) || []
   
-  // Fetch lowest prices for today
-  const priceMap = await getHotelsLowestRatesForDate(hotelIds, today)
+  // Fetch lowest prices for a 1-night stay (today to tomorrow)
+  const priceMap = await getHotelsLowestRatesForRange(hotelIds, today, tomorrow)
 
   // Process hotels to include lowest_price from room_rates
   const hotels = (hotelsData || []).map((hotel: Hotel) => ({
