@@ -70,8 +70,15 @@ export function HotelCard({ hotel, checkIn, checkOut, guests }: HotelCardProps) 
         )}
         <div className="flex items-center justify-between mt-3 pt-3 border-t">
           <div>
-            <span className="text-2xl font-bold">${hotel.price_per_night}</span>
-            <span className="text-sm text-muted-foreground"> / night</span>
+            {hotel.lowest_price ? (
+              <>
+                <span className="text-xs text-muted-foreground">From </span>
+                <span className="text-2xl font-bold">₱{hotel.lowest_price.toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground"> / night</span>
+              </>
+            ) : (
+              <span className="text-sm text-muted-foreground">Price on request</span>
+            )}
           </div>
           <Button asChild size="sm">
             <Link href={href}>View Deal</Link>

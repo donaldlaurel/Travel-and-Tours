@@ -16,6 +16,7 @@ export interface Hotel {
   updated_at: string
   avg_rating?: number
   review_count?: number
+  lowest_price?: number
 }
 
 export interface HotelImage {

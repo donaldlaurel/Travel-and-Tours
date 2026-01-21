@@ -83,42 +83,34 @@ async function HotelResults({
 }) {
   const supabase = await createClient()
 
-  let query = supabase.from("hotels").select("*")
+  // Fetch hotels with their lowest room price
+  let query = supabase.from("hotels").select(`
+    *,
+    room_types (
+      base_price
+    )
+  `)
 
   // Apply filters
   if (searchParams.city) {
     query = query.or(`city.ilike.%${searchParams.city}%,country.ilike.%${searchParams.city}%`)
   }
 
-  if (searchParams.minPrice) {
-    query = query.gte("price_per_night", Number.parseFloat(searchParams.minPrice))
-  }
-
-  if (searchParams.maxPrice) {
-    query = query.lte("price_per_night", Number.parseFloat(searchParams.maxPrice))
-  }
+  // Price filtering is done client-side after fetching lowest room prices
 
   if (searchParams.stars) {
     const starRatings = searchParams.stars.split(",").map((s) => Number.parseInt(s))
     query = query.in("star_rating", starRatings)
   }
 
-  // Apply sorting
-  switch (searchParams.sort) {
-    case "price-asc":
-      query = query.order("price_per_night", { ascending: true })
-      break
-    case "price-desc":
-      query = query.order("price_per_night", { ascending: false })
-      break
-    case "rating":
-      query = query.order("star_rating", { ascending: false })
-      break
-    default:
-      query = query.order("created_at", { ascending: false })
+  // Apply sorting (price sorting done client-side after calculating lowest price)
+  if (searchParams.sort === "rating") {
+    query = query.order("star_rating", { ascending: false })
+  } else {
+    query = query.order("created_at", { ascending: false })
   }
 
-  const { data: hotels, error } = await query
+  const { data: hotelsData, error } = await query
 
   if (error) {
     return (
@@ -128,12 +120,49 @@ async function HotelResults({
     )
   }
 
-  // Filter by amenities client-side (since it's an array column)
-  let filteredHotels = hotels || []
+  // Process hotels to include lowest_price from room_types
+  const hotels = (hotelsData || []).map((hotel: Hotel & { room_types?: { base_price: number }[] }) => {
+    const roomPrices = hotel.room_types?.map(rt => rt.base_price).filter(Boolean) || []
+    const lowestPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : null
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { room_types, ...hotelWithoutRooms } = hotel
+    return {
+      ...hotelWithoutRooms,
+      lowest_price: lowestPrice,
+    }
+  })
+
+  // Filter by price range (using lowest room price)
+  let filteredHotels = hotels
+  if (searchParams.minPrice) {
+    const minPrice = Number.parseFloat(searchParams.minPrice)
+    filteredHotels = filteredHotels.filter((hotel: Hotel) => 
+      hotel.lowest_price && hotel.lowest_price >= minPrice
+    )
+  }
+  if (searchParams.maxPrice) {
+    const maxPrice = Number.parseFloat(searchParams.maxPrice)
+    filteredHotels = filteredHotels.filter((hotel: Hotel) => 
+      hotel.lowest_price && hotel.lowest_price <= maxPrice
+    )
+  }
+
+  // Filter by amenities (array column)
   if (searchParams.amenities) {
     const requiredAmenities = searchParams.amenities.split(",")
     filteredHotels = filteredHotels.filter((hotel: Hotel) =>
       requiredAmenities.every((amenity) => hotel.amenities?.includes(amenity)),
+    )
+  }
+
+  // Apply price sorting client-side
+  if (searchParams.sort === "price-asc") {
+    filteredHotels = filteredHotels.sort((a: Hotel, b: Hotel) => 
+      (a.lowest_price || 0) - (b.lowest_price || 0)
+    )
+  } else if (searchParams.sort === "price-desc") {
+    filteredHotels = filteredHotels.sort((a: Hotel, b: Hotel) => 
+      (b.lowest_price || 0) - (a.lowest_price || 0)
     )
   }
 
