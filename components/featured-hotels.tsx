@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { HotelCard } from "@/components/hotel-card"
+import { getHotelsLowestRatesForDate } from "@/lib/availability-server"
+import { format } from "date-fns"
 import type { Hotel } from "@/lib/types"
 
 export async function FeaturedHotels() {
@@ -7,26 +9,22 @@ export async function FeaturedHotels() {
 
   const { data: hotelsData } = await supabase
     .from("hotels")
-    .select(`
-      *,
-      room_types (
-        base_price
-      )
-    `)
+    .select("*")
     .order("star_rating", { ascending: false })
     .limit(6)
 
-  // Process hotels to include lowest_price from room_types
-  const hotels = (hotelsData || []).map((hotel: Hotel & { room_types?: { base_price: number }[] }) => {
-    const roomPrices = hotel.room_types?.map(rt => rt.base_price).filter(Boolean) || []
-    const lowestPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : null
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { room_types, ...hotelWithoutRooms } = hotel
-    return {
-      ...hotelWithoutRooms,
-      lowest_price: lowestPrice,
-    }
-  })
+  // Get today's date for price lookup
+  const today = format(new Date(), "yyyy-MM-dd")
+  const hotelIds = hotelsData?.map((h: Hotel) => h.id) || []
+  
+  // Fetch lowest prices for today
+  const priceMap = await getHotelsLowestRatesForDate(hotelIds, today)
+
+  // Process hotels to include lowest_price from room_rates
+  const hotels = (hotelsData || []).map((hotel: Hotel) => ({
+    ...hotel,
+    lowest_price: priceMap[hotel.id] ?? null,
+  }))
 
   if (!hotels || hotels.length === 0) {
     return (

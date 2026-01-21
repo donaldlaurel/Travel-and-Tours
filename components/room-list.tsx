@@ -52,9 +52,9 @@ export function RoomList({ roomTypes, hotelId, checkIn, checkOut, guests }: Room
         const availableRooms = room.dynamicAvailability ?? room.available_rooms
         const isAvailable = availableRooms > 0
         
-        // Calculate display price
-        const pricePerNight = room.base_price || room.price_per_night
-        const totalPrice = room.priceForDates ?? (nights > 0 ? pricePerNight * nights : null)
+        // Calculate display price - only show if we have actual rates
+        const totalPrice = room.priceForDates
+        const hasPrice = totalPrice !== null && totalPrice > 0
 
         return (
           <Card key={room.id} className="overflow-hidden">
@@ -110,7 +110,7 @@ export function RoomList({ roomTypes, hotelId, checkIn, checkOut, guests }: Room
 
                   <div className="flex flex-col items-end gap-3">
                     <div className="text-right">
-                      {totalPrice && nights > 0 ? (
+                      {hasPrice && nights > 0 ? (
                         <>
                           <p className="text-2xl font-bold">₱{totalPrice.toLocaleString()}</p>
                           <p className="text-sm text-muted-foreground">
@@ -120,24 +120,28 @@ export function RoomList({ roomTypes, hotelId, checkIn, checkOut, guests }: Room
                             (₱{Math.round(totalPrice / nights).toLocaleString()}/night)
                           </p>
                         </>
-                      ) : (
+                      ) : hasPrice ? (
                         <>
-                          <p className="text-2xl font-bold">₱{pricePerNight.toLocaleString()}</p>
+                          <p className="text-2xl font-bold">₱{totalPrice.toLocaleString()}</p>
                           <p className="text-sm text-muted-foreground">per night</p>
                         </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Not available for selected dates</p>
                       )}
                     </div>
                     <div className="text-sm">
-                      {isAvailable ? (
+                      {isAvailable && hasPrice ? (
                         <span className={availableRooms <= 3 ? "text-orange-600 font-medium" : "text-primary"}>
                           {availableRooms <= 3 ? `Only ${availableRooms} left!` : `${availableRooms} rooms available`}
                         </span>
                       ) : (
-                        <span className="text-destructive font-medium">Sold out</span>
+                        <span className="text-destructive font-medium">
+                          {hasPrice ? "Sold out" : "Closed"}
+                        </span>
                       )}
                     </div>
-                    <Button onClick={() => handleSelectRoom(room.id)} disabled={!isAvailable}>
-                      {isAvailable ? "Select Room" : "Not Available"}
+                    <Button onClick={() => handleSelectRoom(room.id)} disabled={!isAvailable || !hasPrice}>
+                      {isAvailable && hasPrice ? "Select Room" : "Not Available"}
                     </Button>
                   </div>
                 </div>

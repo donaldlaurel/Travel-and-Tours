@@ -13,9 +13,10 @@ interface HotelCardProps {
   checkIn?: string
   checkOut?: string
   guests?: number
+  showTotalPrice?: boolean // true if lowest_price is total for date range
 }
 
-export function HotelCard({ hotel, checkIn, checkOut, guests }: HotelCardProps) {
+export function HotelCard({ hotel, checkIn, checkOut, guests, showTotalPrice }: HotelCardProps) {
   const searchParams = new URLSearchParams()
   if (checkIn) searchParams.set("checkIn", checkIn)
   if (checkOut) searchParams.set("checkOut", checkOut)
@@ -74,10 +75,12 @@ export function HotelCard({ hotel, checkIn, checkOut, guests }: HotelCardProps) 
               <>
                 <span className="text-xs text-muted-foreground">From </span>
                 <span className="text-2xl font-bold">₱{hotel.lowest_price.toLocaleString()}</span>
-                <span className="text-sm text-muted-foreground"> / night</span>
+                <span className="text-sm text-muted-foreground">
+                  {showTotalPrice ? " total" : " / night"}
+                </span>
               </>
             ) : (
-              <span className="text-sm text-muted-foreground">Price on request</span>
+              <span className="text-sm text-muted-foreground">Not available</span>
             )}
           </div>
           <Button asChild size="sm">

@@ -12,9 +12,10 @@ interface HotelListProps {
   guests?: number
   totalCount: number
   city?: string
+  showTotalPrice?: boolean
 }
 
-export function HotelList({ hotels, checkIn, checkOut, guests, totalCount, city }: HotelListProps) {
+export function HotelList({ hotels, checkIn, checkOut, guests, totalCount, city, showTotalPrice }: HotelListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -63,7 +64,7 @@ export function HotelList({ hotels, checkIn, checkOut, guests, totalCount, city 
       {/* Hotel Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {hotels.map((hotel) => (
-          <HotelCard key={hotel.id} hotel={hotel} checkIn={checkIn} checkOut={checkOut} guests={guests} />
+          <HotelCard key={hotel.id} hotel={hotel} checkIn={checkIn} checkOut={checkOut} guests={guests} showTotalPrice={showTotalPrice} />
         ))}
       </div>
     </div>

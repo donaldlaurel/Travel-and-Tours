@@ -194,3 +194,205 @@ export function mergeRoomTypesWithAvailability(
     }
   })
 }
+
+/**
+ * Get the lowest available room rate for a hotel on a specific date
+ * Returns null if no rooms are available on that date
+ */
+export async function getHotelLowestRateForDate(
+  hotelId: string,
+  date: string
+): Promise<number | null> {
+  const supabase = await createClient()
+
+  // Fetch room rates for this hotel on the specified date
+  const { data: rates } = await supabase
+    .from("room_rates")
+    .select(`
+      price,
+      room_type_id,
+      room_types!inner (
+        hotel_id
+      )
+    `)
+    .eq("date", date)
+    .eq("room_types.hotel_id", hotelId)
+
+  if (!rates || rates.length === 0) {
+    return null
+  }
+
+  // Get the lowest price from available rates
+  const prices = rates.map(r => r.price).filter(Boolean)
+  return prices.length > 0 ? Math.min(...prices) : null
+}
+
+/**
+ * Get lowest rates for multiple hotels on a specific date
+ * More efficient than calling getHotelLowestRateForDate for each hotel
+ */
+export async function getHotelsLowestRatesForDate(
+  hotelIds: string[],
+  date: string
+): Promise<Record<string, number | null>> {
+  const supabase = await createClient()
+
+  // Fetch all room rates for the specified date for all hotels
+  const { data: rates } = await supabase
+    .from("room_rates")
+    .select(`
+      price,
+      room_type_id,
+      room_types!inner (
+        hotel_id
+      )
+    `)
+    .eq("date", date)
+    .in("room_types.hotel_id", hotelIds)
+
+  // Group rates by hotel and find minimum
+  const result: Record<string, number | null> = {}
+  hotelIds.forEach(id => {
+    result[id] = null
+  })
+
+  rates?.forEach((rate) => {
+    const hotelId = (rate.room_types as { hotel_id: string }).hotel_id
+    const currentMin = result[hotelId]
+    if (currentMin === null || rate.price < currentMin) {
+      result[hotelId] = rate.price
+    }
+  })
+
+  return result
+}
+
+/**
+ * Get lowest total rate for a hotel for a date range
+ * Only returns a price if at least one room has rates for ALL dates in the range
+ */
+export async function getHotelLowestRateForRange(
+  hotelId: string,
+  checkIn: string,
+  checkOut: string
+): Promise<number | null> {
+  const supabase = await createClient()
+  const dates = getDatesBetween(checkIn, checkOut)
+  const nights = dates.length
+
+  if (nights === 0) return null
+
+  // Fetch all room types for this hotel
+  const { data: roomTypes } = await supabase
+    .from("room_types")
+    .select("id")
+    .eq("hotel_id", hotelId)
+
+  if (!roomTypes || roomTypes.length === 0) return null
+
+  // Fetch all rates for these room types in the date range
+  const { data: rates } = await supabase
+    .from("room_rates")
+    .select("room_type_id, date, price")
+    .in("room_type_id", roomTypes.map(r => r.id))
+    .gte("date", checkIn)
+    .lt("date", checkOut)
+
+  if (!rates || rates.length === 0) return null
+
+  // Group rates by room type
+  const ratesByRoom: Record<string, Record<string, number>> = {}
+  rates.forEach(rate => {
+    if (!ratesByRoom[rate.room_type_id]) {
+      ratesByRoom[rate.room_type_id] = {}
+    }
+    ratesByRoom[rate.room_type_id][rate.date] = rate.price
+  })
+
+  // Find rooms with complete coverage and calculate total price
+  let lowestTotal: number | null = null
+  
+  for (const roomTypeId of Object.keys(ratesByRoom)) {
+    const roomRates = ratesByRoom[roomTypeId]
+    const hasAllDates = dates.every(date => roomRates[date] !== undefined)
+    
+    if (hasAllDates) {
+      const total = dates.reduce((sum, date) => sum + roomRates[date], 0)
+      if (lowestTotal === null || total < lowestTotal) {
+        lowestTotal = total
+      }
+    }
+  }
+
+  return lowestTotal
+}
+
+/**
+ * Get lowest rates for multiple hotels for a date range
+ */
+export async function getHotelsLowestRatesForRange(
+  hotelIds: string[],
+  checkIn: string,
+  checkOut: string
+): Promise<Record<string, number | null>> {
+  const supabase = await createClient()
+  const dates = getDatesBetween(checkIn, checkOut)
+  const nights = dates.length
+  
+  const result: Record<string, number | null> = {}
+  hotelIds.forEach(id => {
+    result[id] = null
+  })
+
+  if (nights === 0) return result
+
+  // Fetch all room types for these hotels
+  const { data: roomTypes } = await supabase
+    .from("room_types")
+    .select("id, hotel_id")
+    .in("hotel_id", hotelIds)
+
+  if (!roomTypes || roomTypes.length === 0) return result
+
+  // Fetch all rates for these room types in the date range
+  const { data: rates } = await supabase
+    .from("room_rates")
+    .select("room_type_id, date, price")
+    .in("room_type_id", roomTypes.map(r => r.id))
+    .gte("date", checkIn)
+    .lt("date", checkOut)
+
+  if (!rates || rates.length === 0) return result
+
+  // Create a map of room type to hotel
+  const roomToHotel: Record<string, string> = {}
+  roomTypes.forEach(rt => {
+    roomToHotel[rt.id] = rt.hotel_id
+  })
+
+  // Group rates by room type
+  const ratesByRoom: Record<string, Record<string, number>> = {}
+  rates.forEach(rate => {
+    if (!ratesByRoom[rate.room_type_id]) {
+      ratesByRoom[rate.room_type_id] = {}
+    }
+    ratesByRoom[rate.room_type_id][rate.date] = rate.price
+  })
+
+  // Find rooms with complete coverage and calculate total price per hotel
+  for (const roomTypeId of Object.keys(ratesByRoom)) {
+    const roomRates = ratesByRoom[roomTypeId]
+    const hasAllDates = dates.every(date => roomRates[date] !== undefined)
+    
+    if (hasAllDates) {
+      const total = dates.reduce((sum, date) => sum + roomRates[date], 0)
+      const hotelId = roomToHotel[roomTypeId]
+      
+      if (result[hotelId] === null || total < result[hotelId]!) {
+        result[hotelId] = total
+      }
+    }
+  }
+
+  return result
+}

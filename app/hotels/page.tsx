@@ -4,6 +4,8 @@ import { SearchForm } from "@/components/search-form"
 import { HotelFilters } from "@/components/hotel-filters"
 import { HotelList } from "@/components/hotel-list"
 import { HotelListSkeleton } from "@/components/hotel-list-skeleton"
+import { getHotelsLowestRatesForDate, getHotelsLowestRatesForRange } from "@/lib/availability-server"
+import { format } from "date-fns"
 import type { Hotel } from "@/lib/types"
 
 interface PageProps {
@@ -83,13 +85,8 @@ async function HotelResults({
 }) {
   const supabase = await createClient()
 
-  // Fetch hotels with their lowest room price
-  let query = supabase.from("hotels").select(`
-    *,
-    room_types (
-      base_price
-    )
-  `)
+  // Fetch hotels
+  let query = supabase.from("hotels").select("*")
 
   // Apply filters
   if (searchParams.city) {
@@ -120,17 +117,31 @@ async function HotelResults({
     )
   }
 
-  // Process hotels to include lowest_price from room_types
-  const hotels = (hotelsData || []).map((hotel: Hotel & { room_types?: { base_price: number }[] }) => {
-    const roomPrices = hotel.room_types?.map(rt => rt.base_price).filter(Boolean) || []
-    const lowestPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : null
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { room_types, ...hotelWithoutRooms } = hotel
-    return {
-      ...hotelWithoutRooms,
-      lowest_price: lowestPrice,
-    }
-  })
+  // Determine the date(s) to check for pricing
+  const today = format(new Date(), "yyyy-MM-dd")
+  const checkIn = searchParams.checkIn || today
+  const checkOut = searchParams.checkOut
+
+  // Get hotel IDs for price lookup
+  const hotelIds = hotelsData?.map((h: Hotel) => h.id) || []
+
+  // Fetch lowest prices based on dates
+  let priceMap: Record<string, number | null> = {}
+  let showTotalPrice = false
+  if (checkOut && checkIn !== checkOut) {
+    // If we have a date range, get total price for the range
+    priceMap = await getHotelsLowestRatesForRange(hotelIds, checkIn, checkOut)
+    showTotalPrice = true
+  } else {
+    // Single date (today or check-in), get per-night rate
+    priceMap = await getHotelsLowestRatesForDate(hotelIds, checkIn)
+  }
+
+  // Process hotels to include lowest_price from room_rates
+  const hotels = (hotelsData || []).map((hotel: Hotel) => ({
+    ...hotel,
+    lowest_price: priceMap[hotel.id] ?? null,
+  }))
 
   // Filter by price range (using lowest room price)
   let filteredHotels = hotels
@@ -177,6 +188,7 @@ async function HotelResults({
       guests={totalGuests}
       totalCount={filteredHotels.length}
       city={searchParams.city}
+      showTotalPrice={showTotalPrice}
     />
   )
 }
