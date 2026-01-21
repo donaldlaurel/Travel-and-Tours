@@ -45,7 +45,11 @@ interface RoomType {
   name: string
   description: string | null
   price_per_night: number
+  base_price: number
   max_guests: number
+  max_adults: number
+  max_children: number
+  breakfast_included: number
   available_rooms: number
   image_url: string | null
   amenities: string[]
@@ -66,8 +70,10 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
     hotel_id: room?.hotel_id || defaultHotelId || "",
     name: room?.name || "",
     description: room?.description || "",
-    price_per_night: room?.price_per_night?.toString() || "",
-    max_guests: room?.max_guests?.toString() || "2",
+    base_price: room?.base_price?.toString() || room?.price_per_night?.toString() || "",
+    max_adults: room?.max_adults?.toString() || "2",
+    max_children: room?.max_children?.toString() || "0",
+    breakfast_included: room?.breakfast_included?.toString() || "0",
     available_rooms: room?.available_rooms?.toString() || "10",
     image_url: room?.image_url || "",
     amenities: room?.amenities || [],
@@ -86,12 +92,20 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
 
     const supabase = createClient()
 
+    const basePrice = Number.parseFloat(formData.base_price)
+    const maxAdults = Number.parseInt(formData.max_adults)
+    const maxChildren = Number.parseInt(formData.max_children)
+    
     const roomData = {
       hotel_id: formData.hotel_id,
       name: formData.name,
       description: formData.description || null,
-      price_per_night: Number.parseFloat(formData.price_per_night),
-      max_guests: Number.parseInt(formData.max_guests),
+      base_price: basePrice,
+      price_per_night: basePrice, // Keep for backwards compatibility
+      max_adults: maxAdults,
+      max_children: maxChildren,
+      max_guests: maxAdults + maxChildren,
+      breakfast_included: Number.parseInt(formData.breakfast_included),
       available_rooms: Number.parseInt(formData.available_rooms),
       image_url: formData.image_url || null,
       amenities: formData.amenities,
@@ -183,45 +197,101 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="space-y-2">
-          <Label htmlFor="price_per_night">Price per Night (₱) *</Label>
-          <Input
-            id="price_per_night"
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.price_per_night}
-            onChange={(e) => setFormData({ ...formData, price_per_night: e.target.value })}
-            required
-          />
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Room Capacity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
+              <Label htmlFor="max_adults">Maximum Adults *</Label>
+              <Input
+                id="max_adults"
+                type="number"
+                min="1"
+                max="10"
+                value={formData.max_adults}
+                onChange={(e) => setFormData({ ...formData, max_adults: e.target.value })}
+                required
+              />
+              <p className="text-xs text-muted-foreground">Ages 18 or above</p>
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="max_guests">Max Guests *</Label>
-          <Input
-            id="max_guests"
-            type="number"
-            min="1"
-            max="20"
-            value={formData.max_guests}
-            onChange={(e) => setFormData({ ...formData, max_guests: e.target.value })}
-            required
-          />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="max_children">Maximum Children</Label>
+              <Input
+                id="max_children"
+                type="number"
+                min="0"
+                max="10"
+                value={formData.max_children}
+                onChange={(e) => setFormData({ ...formData, max_children: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Ages 0-17</p>
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="available_rooms">Available Rooms *</Label>
-          <Input
-            id="available_rooms"
-            type="number"
-            min="0"
-            value={formData.available_rooms}
-            onChange={(e) => setFormData({ ...formData, available_rooms: e.target.value })}
-            required
-          />
-        </div>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="breakfast_included">Breakfast Included</Label>
+              <Input
+                id="breakfast_included"
+                type="number"
+                min="0"
+                max="10"
+                value={formData.breakfast_included}
+                onChange={(e) => setFormData({ ...formData, breakfast_included: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Number of guests with free breakfast</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="available_rooms">Available Rooms *</Label>
+              <Input
+                id="available_rooms"
+                type="number"
+                min="0"
+                value={formData.available_rooms}
+                onChange={(e) => setFormData({ ...formData, available_rooms: e.target.value })}
+                required
+              />
+              <p className="text-xs text-muted-foreground">Total rooms of this type</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Pricing</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2 max-w-xs">
+            <Label htmlFor="base_price">Base Price per Night (₱) *</Label>
+            <Input
+              id="base_price"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.base_price}
+              onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
+              required
+            />
+            <p className="text-xs text-muted-foreground">Default price when no daily rate is set</p>
+          </div>
+
+          {room?.id && formData.base_price && (
+            <RoomRateCalendar
+              roomTypeId={room.id}
+              basePrice={Number.parseFloat(formData.base_price) || 0}
+            />
+          )}
+
+          {!room?.id && (
+            <p className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+              Save the room first to set daily rates using the calendar.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <ImageUpload
         label="Room Image"
