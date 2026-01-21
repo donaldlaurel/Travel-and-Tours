@@ -88,12 +88,6 @@ export function BookingSidebar({
   return (
     <div className="sticky top-24">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">₱{basePrice.toLocaleString()}</span>
-            <span className="text-sm font-normal text-muted-foreground">/ night</span>
-          </CardTitle>
-        </CardHeader>
         <CardContent className="space-y-4">
           {/* Check-in / Check-out */}
           <div className="grid grid-cols-2 gap-2">
@@ -200,7 +194,6 @@ export function BookingSidebar({
                         <div className="flex justify-between items-center w-full gap-2">
                           <span>{room.name}</span>
                           <span className="text-muted-foreground">
-                            ₱{roomPrice.toLocaleString()}/night
                             {checkIn && checkOut && !isAvailable && " (Sold out)"}
                             {checkIn && checkOut && isAvailable && availCount <= 3 && ` (${availCount} left)`}
                           </span>
