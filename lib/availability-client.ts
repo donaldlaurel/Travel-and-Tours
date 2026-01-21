@@ -6,6 +6,7 @@ export interface RoomAvailability {
   bookedRooms: number
   availableRooms: number
   priceForDates: number | null
+  isBlocked?: boolean
 }
 
 /**
@@ -27,6 +28,26 @@ export async function getRoomAvailabilityClient(
   if (!roomTypes || roomTypes.length === 0) {
     return []
   }
+
+  // Check for availability blocks that affect this hotel or its rooms
+  const { data: blocks } = await supabase
+    .from("availability_blocks")
+    .select("hotel_id, room_type_id")
+    .or(`hotel_id.eq.${hotelId},room_type_id.in.(${roomTypes.map(r => r.id).join(",")})`)
+    .lte("start_date", checkOut)
+    .gte("end_date", checkIn)
+
+  // Create a set of blocked room types
+  const blockedRoomTypes = new Set<string>()
+  let hotelBlocked = false
+  
+  blocks?.forEach((block) => {
+    if (block.hotel_id === hotelId && !block.room_type_id) {
+      hotelBlocked = true
+    } else if (block.room_type_id) {
+      blockedRoomTypes.add(block.room_type_id)
+    }
+  })
 
   // Fetch confirmed/pending bookings that overlap with the requested dates
   const { data: bookings } = await supabase
@@ -62,8 +83,9 @@ export async function getRoomAvailabilityClient(
 
   // Calculate availability for each room type
   return roomTypes.map((room) => {
+    const isBlocked = hotelBlocked || blockedRoomTypes.has(room.id)
     const bookedRooms = bookingCounts[room.id] || 0
-    const availableRooms = Math.max(0, room.available_rooms - bookedRooms)
+    const availableRooms = isBlocked ? 0 : Math.max(0, room.available_rooms - bookedRooms)
     
     // Calculate price for the date range
     const dailyRates = ratesMap[room.id] || []
@@ -83,6 +105,7 @@ export async function getRoomAvailabilityClient(
       bookedRooms,
       availableRooms,
       priceForDates,
+      isBlocked,
     }
   })
 }

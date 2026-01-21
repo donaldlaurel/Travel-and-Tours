@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { HotelForm } from "@/components/admin/hotel-form"
+import { AvailabilityManager } from "@/components/admin/availability-manager"
 
 export default async function EditHotelPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -37,6 +38,8 @@ export default async function EditHotelPage({ params }: { params: Promise<{ id: 
           <HotelForm hotel={hotel} existingGalleryImages={existingGalleryImages} />
         </CardContent>
       </Card>
+
+      <AvailabilityManager hotelId={id} />
     </div>
   )
 }
