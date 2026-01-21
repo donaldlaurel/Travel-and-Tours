@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -32,11 +31,8 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Plus, Trash2, AlertCircle, ArrowUpDown } from "lucide-react"
+import { Calendar, Plus, Trash2, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
-
-type SortField = "start_date" | "end_date" | "block_type" | "created_at"
-type SortDirection = "asc" | "desc"
 
 interface AvailabilityBlock {
   id: string
@@ -75,6 +71,9 @@ const BLOCK_TYPES = [
   { value: "overbooking_protection", label: "Overbooking Protection" },
   { value: "other", label: "Other" },
 ]
+
+type SortField = "start_date" | "end_date" | "block_type" | "reason"
+type SortDirection = "asc" | "desc"
 
 export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManagerProps) {
   const [blocks, setBlocks] = useState<AvailabilityBlock[]>([])
@@ -245,45 +244,18 @@ export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManager
     return today < start
   }
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      setSortField(field)
-      setSortDirection("asc")
-    }
-  }
+  const sortedBlocks = blocks.sort((a, b) => {
+    const fieldA = a[sortField]
+    const fieldB = b[sortField]
 
-  const sortedBlocks = [...blocks].sort((a, b) => {
-    let comparison = 0
-    switch (sortField) {
-      case "start_date":
-        comparison = new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-        break
-      case "end_date":
-        comparison = new Date(a.end_date).getTime() - new Date(b.end_date).getTime()
-        break
-      case "block_type":
-        comparison = a.block_type.localeCompare(b.block_type)
-        break
-      case "created_at":
-        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        break
+    if (fieldA < fieldB) {
+      return sortDirection === "asc" ? -1 : 1
     }
-    return sortDirection === "asc" ? comparison : -comparison
+    if (fieldA > fieldB) {
+      return sortDirection === "asc" ? 1 : -1
+    }
+    return 0
   })
-
-  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <TableHead 
-      className="cursor-pointer hover:bg-muted/50 select-none"
-      onClick={() => handleSort(field)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
-        <ArrowUpDown className={`h-3 w-3 ${sortField === field ? "text-primary" : "text-muted-foreground"}`} />
-      </div>
-    </TableHead>
-  )
 
   return (
     <Card>
@@ -427,16 +399,16 @@ export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManager
               <TableRow>
                 {!hotelId && <TableHead>Hotel</TableHead>}
                 {!roomTypeId && <TableHead>Room</TableHead>}
-                <SortableHeader field="start_date">Start Date</SortableHeader>
-                <SortableHeader field="end_date">End Date</SortableHeader>
-                <SortableHeader field="block_type">Type</SortableHeader>
+                <TableHead>Start Date</TableHead>
+                <TableHead>End Date</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedBlocks.map((block) => (
+              {blocks.map((block) => (
                 <TableRow key={block.id}>
                   {!hotelId && (
                     <TableCell className="font-medium">
@@ -489,4 +461,8 @@ export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManager
       </CardContent>
     </Card>
   )
+}
+
+function handleSort(field: SortField) {
+  // Implement sorting logic here
 }
