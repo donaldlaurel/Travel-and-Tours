@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Eye } from "lucide-react"
 import { UpdateBookingStatus } from "@/components/admin/update-booking-status"
 import { BookingsFilter } from "@/components/admin/bookings-filter"
+import { SortSelect, bookingSortOptions, parseSortParam } from "@/components/admin/sort-select"
 
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; status?: string; page?: string }>
+  searchParams: Promise<{ search?: string; status?: string; page?: string; sort?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
@@ -17,6 +18,7 @@ export default async function AdminBookingsPage({
   const statusFilter = params.status || "all"
   const page = Number(params.page) || 1
   const perPage = 10
+  const { column, ascending } = parseSortParam(params.sort, bookingSortOptions)
 
   let query = supabase.from("bookings").select(
     `
@@ -35,7 +37,7 @@ export default async function AdminBookingsPage({
     data: bookings,
     count,
     error,
-  } = await query.order("created_at", { ascending: false }).range((page - 1) * perPage, page * perPage - 1)
+  } = await query.order(column, { ascending }).range((page - 1) * perPage, page * perPage - 1)
 
   const totalPages = Math.ceil((count || 0) / perPage)
 
@@ -55,7 +57,10 @@ export default async function AdminBookingsPage({
 
       <Card>
         <CardHeader>
-          <BookingsFilter />
+          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+            <BookingsFilter />
+            <SortSelect options={bookingSortOptions} defaultValue={params.sort} />
+          </div>
         </CardHeader>
         <CardContent>
           {error ? (
@@ -127,12 +132,12 @@ export default async function AdminBookingsPage({
                   <div className="flex gap-2">
                     {page > 1 && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/bookings?status=${statusFilter}&page=${page - 1}`}>Previous</Link>
+                        <Link href={`/admin/bookings?status=${statusFilter}&sort=${params.sort || ""}&page=${page - 1}`}>Previous</Link>
                       </Button>
                     )}
                     {page < totalPages && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/bookings?status=${statusFilter}&page=${page + 1}`}>Next</Link>
+                        <Link href={`/admin/bookings?status=${statusFilter}&sort=${params.sort || ""}&page=${page + 1}`}>Next</Link>
                       </Button>
                     )}
                   </div>

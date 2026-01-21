@@ -6,17 +6,19 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Plus, Search, Star, MapPin, Edit } from "lucide-react"
 import { DeleteHotelButton } from "@/components/admin/delete-hotel-button"
+import { SortSelect, hotelSortOptions, parseSortParam } from "@/components/admin/sort-select"
 
 export default async function AdminHotelsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string }>
+  searchParams: Promise<{ search?: string; page?: string; sort?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
   const search = params.search || ""
   const page = Number(params.page) || 1
   const perPage = 10
+  const { column, ascending } = parseSortParam(params.sort, hotelSortOptions)
 
   let query = supabase.from("hotels").select("*", { count: "exact" })
 
@@ -28,7 +30,7 @@ export default async function AdminHotelsPage({
     data: hotels,
     count,
     error,
-  } = await query.order("created_at", { ascending: false }).range((page - 1) * perPage, page * perPage - 1)
+  } = await query.order(column, { ascending }).range((page - 1) * perPage, page * perPage - 1)
 
   const totalPages = Math.ceil((count || 0) / perPage)
 
@@ -49,11 +51,12 @@ export default async function AdminHotelsPage({
 
       <Card>
         <CardHeader>
-          <form className="flex gap-2">
+          <form className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input name="search" placeholder="Search hotels..." defaultValue={search} className="pl-9" />
             </div>
+            <SortSelect options={hotelSortOptions} defaultValue={params.sort} />
             <Button type="submit">Search</Button>
           </form>
         </CardHeader>
@@ -137,12 +140,12 @@ export default async function AdminHotelsPage({
                   <div className="flex gap-2">
                     {page > 1 && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/hotels?search=${search}&page=${page - 1}`}>Previous</Link>
+                        <Link href={`/admin/hotels?search=${search}&sort=${params.sort || ""}&page=${page - 1}`}>Previous</Link>
                       </Button>
                     )}
                     {page < totalPages && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/hotels?search=${search}&page=${page + 1}`}>Next</Link>
+                        <Link href={`/admin/hotels?search=${search}&sort=${params.sort || ""}&page=${page + 1}`}>Next</Link>
                       </Button>
                     )}
                   </div>

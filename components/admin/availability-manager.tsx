@@ -32,8 +32,11 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Plus, Trash2, AlertCircle } from "lucide-react"
+import { Calendar, Plus, Trash2, AlertCircle, ArrowUpDown } from "lucide-react"
 import { format } from "date-fns"
+
+type SortField = "start_date" | "end_date" | "block_type" | "created_at"
+type SortDirection = "asc" | "desc"
 
 interface AvailabilityBlock {
   id: string
@@ -80,6 +83,8 @@ export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManager
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [sortField, setSortField] = useState<SortField>("start_date")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
   const [formData, setFormData] = useState({
     hotel_id: hotelId || "",
@@ -240,6 +245,46 @@ export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManager
     return today < start
   }
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  const sortedBlocks = [...blocks].sort((a, b) => {
+    let comparison = 0
+    switch (sortField) {
+      case "start_date":
+        comparison = new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+        break
+      case "end_date":
+        comparison = new Date(a.end_date).getTime() - new Date(b.end_date).getTime()
+        break
+      case "block_type":
+        comparison = a.block_type.localeCompare(b.block_type)
+        break
+      case "created_at":
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        break
+    }
+    return sortDirection === "asc" ? comparison : -comparison
+  })
+
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <TableHead 
+      className="cursor-pointer hover:bg-muted/50 select-none"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        <ArrowUpDown className={`h-3 w-3 ${sortField === field ? "text-primary" : "text-muted-foreground"}`} />
+      </div>
+    </TableHead>
+  )
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -382,15 +427,16 @@ export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManager
               <TableRow>
                 {!hotelId && <TableHead>Hotel</TableHead>}
                 {!roomTypeId && <TableHead>Room</TableHead>}
-                <TableHead>Date Range</TableHead>
-                <TableHead>Type</TableHead>
+                <SortableHeader field="start_date">Start Date</SortableHeader>
+                <SortableHeader field="end_date">End Date</SortableHeader>
+                <SortableHeader field="block_type">Type</SortableHeader>
                 <TableHead>Status</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {blocks.map((block) => (
+              {sortedBlocks.map((block) => (
                 <TableRow key={block.id}>
                   {!hotelId && (
                     <TableCell className="font-medium">
@@ -403,7 +449,9 @@ export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManager
                     </TableCell>
                   )}
                   <TableCell>
-                    {format(new Date(block.start_date), "MMM d, yyyy")} -{" "}
+                    {format(new Date(block.start_date), "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell>
                     {format(new Date(block.end_date), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell>

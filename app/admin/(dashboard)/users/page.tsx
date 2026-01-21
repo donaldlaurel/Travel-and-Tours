@@ -7,23 +7,25 @@ import { Shield, User, Edit } from "lucide-react"
 import { ToggleAdminRole } from "@/components/admin/toggle-admin-role"
 import { DeleteUserButton } from "@/components/admin/delete-user-button"
 import { UsersFilter } from "@/components/admin/users-filter"
+import { SortSelect, userSortOptions, parseSortParam } from "@/components/admin/sort-select"
 
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string }>
+  searchParams: Promise<{ search?: string; page?: string; sort?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
   const search = params.search || ""
   const page = Number(params.page) || 1
   const perPage = 10
+  const { column, ascending } = parseSortParam(params.sort, userSortOptions)
 
   // Fetch profiles with user counts
   const { data: profiles, count } = await supabase
     .from("profiles")
     .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
+    .order(column, { ascending })
     .range((page - 1) * perPage, page * perPage - 1)
 
   const totalPages = Math.ceil((count || 0) / perPage)
@@ -49,7 +51,10 @@ export default async function AdminUsersPage({
 
       <Card>
         <CardHeader>
-          <UsersFilter />
+          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+            <UsersFilter />
+            <SortSelect options={userSortOptions} defaultValue={params.sort} />
+          </div>
         </CardHeader>
         <CardContent>
           {profiles && profiles.length > 0 ? (
@@ -141,12 +146,12 @@ export default async function AdminUsersPage({
                   <div className="flex gap-2">
                     {page > 1 && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/users?search=${search}&page=${page - 1}`}>Previous</Link>
+                        <Link href={`/admin/users?search=${search}&sort=${params.sort || ""}&page=${page - 1}`}>Previous</Link>
                       </Button>
                     )}
                     {page < totalPages && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/users?search=${search}&page=${page + 1}`}>Next</Link>
+                        <Link href={`/admin/users?search=${search}&sort=${params.sort || ""}&page=${page + 1}`}>Next</Link>
                       </Button>
                     )}
                   </div>

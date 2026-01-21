@@ -4,15 +4,16 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Users, Edit, Trash2 } from "lucide-react"
+import { Plus, Search, Users, Edit } from "lucide-react"
 import { DeleteRoomButton } from "@/components/admin/delete-room-button"
+import { SortSelect, roomSortOptions, parseSortParam } from "@/components/admin/sort-select"
 import { Suspense } from "react"
 import Loading from "./loading"
 
 export default async function AdminRoomsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; hotel?: string; page?: string }>
+  searchParams: Promise<{ search?: string; hotel?: string; page?: string; sort?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
@@ -20,6 +21,7 @@ export default async function AdminRoomsPage({
   const hotelFilter = params.hotel || ""
   const page = Number(params.page) || 1
   const perPage = 10
+  const { column, ascending } = parseSortParam(params.sort, roomSortOptions)
 
   // Fetch hotels for filter dropdown
   const { data: hotels } = await supabase
@@ -44,7 +46,7 @@ export default async function AdminRoomsPage({
   }
 
   const { data: rooms, count, error } = await query
-    .order("created_at", { ascending: false })
+    .order(column, { ascending })
     .range((page - 1) * perPage, page * perPage - 1)
 
   const totalPages = Math.ceil((count || 0) / perPage)
@@ -84,6 +86,7 @@ export default async function AdminRoomsPage({
                   </option>
                 ))}
               </select>
+              <SortSelect options={roomSortOptions} defaultValue={params.sort} />
               <Button type="submit">Filter</Button>
             </form>
           </CardHeader>
@@ -184,14 +187,14 @@ export default async function AdminRoomsPage({
                     <div className="flex gap-2">
                       {page > 1 && (
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&page=${page - 1}`}>
+                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&sort=${params.sort || ""}&page=${page - 1}`}>
                             Previous
                           </Link>
                         </Button>
                       )}
                       {page < totalPages && (
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&page=${page + 1}`}>
+                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&sort=${params.sort || ""}&page=${page + 1}`}>
                             Next
                           </Link>
                         </Button>
