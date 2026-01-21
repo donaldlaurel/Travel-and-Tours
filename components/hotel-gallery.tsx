@@ -97,9 +97,6 @@ export function HotelGallery({ hotel, images }: HotelGalleryProps) {
               <span className="text-sm text-muted-foreground">
                 {currentIndex + 1} / {allImages.length}
               </span>
-              <Button variant="ghost" size="icon" onClick={() => setShowGallery(false)}>
-                <X className="h-5 w-5" />
-              </Button>
             </div>
 
             {/* Image */}
