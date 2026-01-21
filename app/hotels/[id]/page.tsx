@@ -53,15 +53,27 @@ export default async function HotelDetailPage({ params, searchParams }: PageProp
   // Fetch room types
   const { data: roomTypes } = await supabase.from("room_types").select("*").eq("hotel_id", id).order("price_per_night")
 
-  // Fetch reviews with profiles
-  const { data: reviews } = await supabase
+  // Fetch reviews
+  const { data: reviewsData } = await supabase
     .from("reviews")
-    .select(`
-      *,
-      profile:profiles(full_name, avatar_url)
-    `)
+    .select("*")
     .eq("hotel_id", id)
     .order("created_at", { ascending: false })
+
+  // Fetch profiles for review authors
+  const userIds = [...new Set(reviewsData?.map(r => r.user_id) || [])]
+  const { data: profiles } = userIds.length > 0 
+    ? await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", userIds)
+    : { data: [] }
+
+  // Combine reviews with profile data
+  const reviews = reviewsData?.map(review => ({
+    ...review,
+    profile: profiles?.find(p => p.id === review.user_id) || null
+  })) || []
 
   // Calculate average rating
   const avgRating = reviews?.length ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null
