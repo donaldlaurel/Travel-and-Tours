@@ -32,12 +32,20 @@ export async function getRoomAvailability(
   }
 
   // Check for availability blocks that affect this hotel or its rooms
-  const { data: blocks } = await supabase
+  const roomTypeIds = roomTypes.map(r => r.id)
+  let blocksQuery = supabase
     .from("availability_blocks")
     .select("hotel_id, room_type_id")
-    .or(`hotel_id.eq.${hotelId},room_type_id.in.(${roomTypes.map(r => r.id).join(",")})`)
     .lte("start_date", checkOut)
     .gte("end_date", checkIn)
+  
+  if (roomTypeIds.length > 0) {
+    blocksQuery = blocksQuery.or(`hotel_id.eq.${hotelId},room_type_id.in.(${roomTypeIds.join(",")})`)
+  } else {
+    blocksQuery = blocksQuery.eq("hotel_id", hotelId)
+  }
+  
+  const { data: blocks } = await blocksQuery
 
   // Create a set of blocked room types
   const blockedRoomTypes = new Set<string>()
@@ -235,6 +243,15 @@ export async function getHotelsLowestRatesForDate(
   hotelIds: string[],
   date: string
 ): Promise<Record<string, number | null>> {
+  const result: Record<string, number | null> = {}
+  
+  // Return empty result if no hotel IDs provided
+  if (!hotelIds || hotelIds.length === 0) return result
+  
+  hotelIds.forEach(id => {
+    result[id] = null
+  })
+
   const supabase = await createClient()
 
   // Fetch all room rates for the specified date for all hotels
@@ -249,12 +266,6 @@ export async function getHotelsLowestRatesForDate(
     `)
     .eq("date", date)
     .in("room_types.hotel_id", hotelIds)
-
-  // Group rates by hotel and find minimum
-  const result: Record<string, number | null> = {}
-  hotelIds.forEach(id => {
-    result[id] = null
-  })
 
   rates?.forEach((rate) => {
     const hotelId = (rate.room_types as { hotel_id: string }).hotel_id
@@ -335,16 +346,21 @@ export async function getHotelsLowestRatesForRange(
   checkIn: string,
   checkOut: string
 ): Promise<Record<string, number | null>> {
-  const supabase = await createClient()
-  const dates = getDatesBetween(checkIn, checkOut)
-  const nights = dates.length
-  
   const result: Record<string, number | null> = {}
+  
+  // Return empty result if no hotel IDs provided
+  if (!hotelIds || hotelIds.length === 0) return result
+  
   hotelIds.forEach(id => {
     result[id] = null
   })
 
+  const dates = getDatesBetween(checkIn, checkOut)
+  const nights = dates.length
+
   if (nights === 0) return result
+
+  const supabase = await createClient()
 
   // Fetch all room types for these hotels
   const { data: roomTypes } = await supabase
