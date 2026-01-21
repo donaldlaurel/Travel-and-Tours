@@ -96,8 +96,8 @@ export default async function AdminRoomsPage({
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="pb-3 text-left font-medium">Room Type</th>
                         <th className="pb-3 text-left font-medium hidden md:table-cell">Hotel</th>
+                        <th className="pb-3 text-left font-medium">Room Type</th>
                         <th className="pb-3 text-left font-medium hidden sm:table-cell">Capacity</th>
                         <th className="pb-3 text-left font-medium">Price</th>
                         <th className="pb-3 text-left font-medium hidden lg:table-cell">Available</th>
@@ -107,6 +107,12 @@ export default async function AdminRoomsPage({
                     <tbody>
                       {rooms.map((room: any) => (
                         <tr key={room.id} className="border-b border-border last:border-0">
+                          <td className="py-4 hidden md:table-cell">
+                            <div>
+                              <p className="font-medium">{room.hotels?.name || "Unknown"}</p>
+                              <p className="text-sm text-muted-foreground">{room.hotels?.city || ""}</p>
+                            </div>
+                          </td>
                           <td className="py-4">
                             <div className="flex items-center gap-3">
                               <div className="relative h-12 w-16 overflow-hidden rounded-md bg-muted">
@@ -130,12 +136,6 @@ export default async function AdminRoomsPage({
                                   {room.hotels?.name || "Unknown Hotel"}
                                 </p>
                               </div>
-                            </div>
-                          </td>
-                          <td className="py-4 hidden md:table-cell">
-                            <div>
-                              <p className="font-medium">{room.hotels?.name || "Unknown"}</p>
-                              <p className="text-sm text-muted-foreground">{room.hotels?.city || ""}</p>
                             </div>
                           </td>
                           <td className="py-4 hidden sm:table-cell">
