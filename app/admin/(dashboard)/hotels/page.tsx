@@ -69,7 +69,6 @@ export default async function AdminHotelsPage({
                       <th className="pb-3 text-left font-medium">Hotel</th>
                       <th className="pb-3 text-left font-medium hidden md:table-cell">Location</th>
                       <th className="pb-3 text-left font-medium hidden sm:table-cell">Rating</th>
-                      <th className="pb-3 text-left font-medium">Price</th>
                       <th className="pb-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -112,10 +111,6 @@ export default async function AdminHotelsPage({
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                             {hotel.star_rating || "-"}
                           </div>
-                        </td>
-                        <td className="py-4">
-                          <span className="font-medium">₱{Number(hotel.price_per_night).toLocaleString()}</span>
-                          <span className="text-muted-foreground text-sm">/night</span>
                         </td>
                         <td className="py-4">
                           <div className="flex items-center justify-end gap-2">
