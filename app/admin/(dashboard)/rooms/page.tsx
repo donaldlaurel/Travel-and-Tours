@@ -46,10 +46,39 @@ export default async function AdminRoomsPage({
     query = query.eq("hotel_id", hotelFilter)
   }
 
-  const { data: rooms, count, error } = await query
-    .order(sortColumn, { ascending })
-    .range((page - 1) * perPage, page * perPage - 1)
+  // Handle sorting - use Supabase order only for direct columns
+  if (sortColumn === "hotel_name") {
+    // For hotel sorting, we'll sort in JavaScript after fetching
+    const { data: allRooms, count: totalCount } = await query
+  } else {
+    // For direct column sorting, use Supabase order
+    const { data: sortedRooms, count: totalCount } = await query
+      .order(sortColumn, { ascending })
+  }
 
+  // Fetch without pagination first if sorting by hotel, then paginate in JS
+  let { data: allRoomsData, count, error } = await query
+
+  // Sort in JavaScript if needed for relational fields
+  if (sortColumn === "hotel_name" && allRoomsData) {
+    allRoomsData.sort((a, b) => {
+      const hotelA = (a.hotels as any)?.name || ""
+      const hotelB = (b.hotels as any)?.name || ""
+      const comparison = hotelA.localeCompare(hotelB)
+      return ascending ? comparison : -comparison
+    })
+    // Apply pagination after sorting
+    allRoomsData = allRoomsData.slice((page - 1) * perPage, page * perPage)
+  } else if (sortColumn !== "hotel_name") {
+    // If not sorting by hotel, use the paginated Supabase result
+    const { data: rooms, error: err } = await query
+      .order(sortColumn, { ascending })
+      .range((page - 1) * perPage, page * perPage - 1)
+    allRoomsData = rooms
+    error = err
+  }
+
+  const rooms = allRoomsData
   const totalPages = Math.ceil((count || 0) / perPage)
 
   return (
@@ -99,7 +128,14 @@ export default async function AdminRoomsPage({
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="pb-3 text-left font-medium hidden md:table-cell">Hotel</th>
+                        <SortHeader
+                          column="hotel_name"
+                          label="Hotel"
+                          currentSort={sortColumn}
+                          currentAscending={ascending}
+                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          className="hidden md:table-cell"
+                        />
                         <SortHeader
                           column="name"
                           label="Room Type"
