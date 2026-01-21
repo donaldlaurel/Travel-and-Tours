@@ -26,13 +26,17 @@ interface SortSelectProps {
 export function SortSelect({ options, defaultValue, paramName = "sort" }: SortSelectProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const currentSort = searchParams.get(paramName) || defaultValue || options[0]?.value
+  const currentSort = searchParams.get(paramName) || defaultValue || (options[0]?.value || "")
 
   const handleChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set(paramName, value)
     params.set("page", "1") // Reset to first page when sorting changes
     router.push(`?${params.toString()}`)
+  }
+
+  if (!options || options.length === 0) {
+    return null
   }
 
   return (
@@ -68,8 +72,8 @@ export const roomSortOptions: SortOption[] = [
   { value: "created_asc", label: "Oldest First", column: "created_at", ascending: true },
   { value: "name_asc", label: "Name (A-Z)", column: "name", ascending: true },
   { value: "name_desc", label: "Name (Z-A)", column: "name", ascending: false },
-  { value: "price_asc", label: "Price (Low-High)", column: "price_per_night", ascending: true },
-  { value: "price_desc", label: "Price (High-Low)", column: "price_per_night", ascending: false },
+  { value: "price_asc", label: "Price (Low-High)", column: "base_price", ascending: true },
+  { value: "price_desc", label: "Price (High-Low)", column: "base_price", ascending: false },
   { value: "capacity_desc", label: "Capacity (High-Low)", column: "max_guests", ascending: false },
   { value: "available_desc", label: "Most Available", column: "available_rooms", ascending: false },
 ]
@@ -102,9 +106,19 @@ export const availabilitySortOptions: SortOption[] = [
 
 // Helper to parse sort param and get column/direction
 export function parseSortParam(
-  sortParam: string | undefined, 
+  sortParam: string | undefined,
   options: SortOption[]
 ): { column: string; ascending: boolean } {
-  const option = options.find(o => o.value === sortParam) || options[0]
-  return { column: option.column, ascending: option.ascending }
+  if (!sortParam || !options || options.length === 0) {
+    return { column: "created_at", ascending: false }
+  }
+
+  const option = options.find((o) => o.value === sortParam)
+  if (option) {
+    return { column: option.column, ascending: option.ascending }
+  }
+
+  // Fallback to first option
+  const defaultOption = options[0]
+  return { column: defaultOption.column, ascending: defaultOption.ascending }
 }
