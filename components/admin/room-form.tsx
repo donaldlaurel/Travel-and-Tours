@@ -70,7 +70,6 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
     hotel_id: room?.hotel_id || defaultHotelId || "",
     name: room?.name || "",
     description: room?.description || "",
-    base_price: room?.base_price?.toString() || room?.price_per_night?.toString() || "",
     max_adults: room?.max_adults?.toString() || "2",
     max_children: room?.max_children?.toString() || "0",
     breakfast_included: room?.breakfast_included?.toString() || "0",
@@ -92,7 +91,6 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
 
     const supabase = createClient()
 
-    const basePrice = Number.parseFloat(formData.base_price)
     const maxAdults = Number.parseInt(formData.max_adults)
     const maxChildren = Number.parseInt(formData.max_children)
     
@@ -100,8 +98,8 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
       hotel_id: formData.hotel_id,
       name: formData.name,
       description: formData.description || null,
-      base_price: basePrice,
-      price_per_night: basePrice, // Keep for backwards compatibility
+      base_price: 0, // No base price - rooms are closed by default
+      price_per_night: 0, // Keep for backwards compatibility
       max_adults: maxAdults,
       max_children: maxChildren,
       max_guests: maxAdults + maxChildren,
@@ -261,34 +259,20 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Pricing</CardTitle>
+          <CardTitle className="text-base">Availability & Pricing</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Rooms are closed by default. Select dates and set rates to make them available for booking.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2 max-w-xs">
-            <Label htmlFor="base_price">Base Price per Night (₱) *</Label>
-            <Input
-              id="base_price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.base_price}
-              onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
-              required
-            />
-            <p className="text-xs text-muted-foreground">Default price when no daily rate is set</p>
-          </div>
-
-          {room?.id && formData.base_price && (
+          {room?.id ? (
             <RoomRateCalendar
               roomTypeId={room.id}
               hotelId={formData.hotel_id}
-              basePrice={Number.parseFloat(formData.base_price) || 0}
             />
-          )}
-
-          {!room?.id && (
+          ) : (
             <p className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-              Save the room first to set daily rates using the calendar.
+              Save the room first to manage availability and pricing using the calendar.
             </p>
           )}
         </CardContent>

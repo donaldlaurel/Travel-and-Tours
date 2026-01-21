@@ -8,6 +8,7 @@ export interface RoomAvailability {
   availableRooms: number
   priceForDates: number | null
   isBlocked?: boolean
+  isClosed?: boolean
 }
 
 /**
@@ -90,20 +91,22 @@ export async function getRoomAvailability(
     const isBlocked = hotelBlocked || blockedRoomTypes.has(room.id)
     
     const bookedRooms = bookingCounts[room.id] || 0
-    const availableRooms = isBlocked ? 0 : Math.max(0, room.available_rooms - bookedRooms)
     
     // Calculate price for the date range
     const dailyRates = ratesMap[room.id] || []
     const nights = getDatesBetween(checkIn, checkOut).length
     
+    // Room is only available if ALL dates in the range have rates set
+    const hasAllRates = nights > 0 && dailyRates.length === nights
+    const isClosed = !hasAllRates
+    
     let priceForDates: number | null = null
-    if (nights > 0) {
-      // Use daily rates if available, otherwise use base price
-      const totalPrice = dailyRates.length > 0
-        ? dailyRates.reduce((sum, price) => sum + price, 0) + (nights - dailyRates.length) * room.base_price
-        : nights * room.base_price
-      priceForDates = totalPrice
+    if (hasAllRates) {
+      priceForDates = dailyRates.reduce((sum, price) => sum + price, 0)
     }
+    
+    // Room is unavailable if blocked, closed (no rates), or no rooms left
+    const availableRooms = (isBlocked || isClosed) ? 0 : Math.max(0, room.available_rooms - bookedRooms)
 
     return {
       roomTypeId: room.id,
@@ -112,6 +115,7 @@ export async function getRoomAvailability(
       availableRooms,
       priceForDates,
       isBlocked,
+      isClosed,
     }
   })
 }

@@ -36,11 +36,10 @@ interface AvailabilityBlock {
 interface RoomRateCalendarProps {
   roomTypeId: string
   hotelId?: string
-  basePrice: number
   onRatesChange?: (rates: RoomRate[]) => void
 }
 
-export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange }: RoomRateCalendarProps) {
+export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRateCalendarProps) {
   const [startMonth, setStartMonth] = useState(new Date())
   const [rates, setRates] = useState<Record<string, RoomRate>>({})
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set())
@@ -135,14 +134,19 @@ export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange
     return eachDayOfInterval({ start, end })
   }
 
-  const getRateForDate = (date: Date): number => {
+  const getRateForDate = (date: Date): number | null => {
     const dateStr = format(date, "yyyy-MM-dd")
-    return rates[dateStr]?.price || basePrice
+    return rates[dateStr]?.price ?? null
   }
 
   const getAvailabilityForDate = (date: Date): number | null => {
     const dateStr = format(date, "yyyy-MM-dd")
     return rates[dateStr]?.available_rooms ?? null
+  }
+
+  const hasRateSet = (date: Date): boolean => {
+    const dateStr = format(date, "yyyy-MM-dd")
+    return !!rates[dateStr]
   }
 
   const handleDateClick = (date: Date, e: React.MouseEvent) => {
@@ -163,14 +167,14 @@ export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange
   const handleBulkUpdate = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (selectedDates.length === 0) return
+    if (selectedDates.length === 0 || !bulkPrice) return
     setLoading(true)
 
     const supabase = createClient()
     const updates: RoomRate[] = selectedDates.map(date => ({
       room_type_id: roomTypeId,
       date: format(date, "yyyy-MM-dd"),
-      price: bulkPrice ? parseFloat(bulkPrice) : basePrice,
+      price: parseFloat(bulkPrice),
       available_rooms: bulkAvailability ? parseInt(bulkAvailability) : null,
     }))
 
@@ -185,6 +189,32 @@ export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange
       setBulkPrice("")
       setBulkAvailability("")
       setDialogOpen(false)
+      onRatesChange?.(Object.values(rates))
+    }
+
+    setLoading(false)
+  }
+
+  const handleCloseDates = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (selectedDates.length === 0) return
+    setLoading(true)
+
+    const supabase = createClient()
+    
+    // Delete rates for selected dates (making them closed)
+    const datesToClose = selectedDates.map(date => format(date, "yyyy-MM-dd"))
+    
+    const { error } = await supabase
+      .from("room_rates")
+      .delete()
+      .eq("room_type_id", roomTypeId)
+      .in("date", datesToClose)
+
+    if (!error) {
+      await loadRates()
+      setSelectedDates([])
       onRatesChange?.(Object.values(rates))
     }
 
@@ -265,27 +295,29 @@ export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange
             const price = getRateForDate(date)
             const availability = getAvailabilityForDate(date)
             const isSelected = isDateSelected(date)
-            const hasCustomRate = rates[dateStr]
+            const hasRate = hasRateSet(date)
             const isBlocked = blockedDates.has(dateStr)
             const block = blockInfo[dateStr]
+            // Dates without a rate are considered closed
+            const isClosed = !hasRate && !isBlocked
 
             return (
               <div
                 key={date.toISOString()}
-                onClick={(e) => !isBlocked && handleDateClick(date, e)}
-                title={isBlocked ? `Blocked: ${block?.block_type}${block?.reason ? ` - ${block.reason}` : ''}` : undefined}
-                className={`p-1 border-b border-r min-h-[60px] transition-colors relative overflow-hidden ${
+                onClick={(e) => handleDateClick(date, e)}
+                title={isBlocked ? `Blocked: ${block?.block_type}${block?.reason ? ` - ${block.reason}` : ''}` : isClosed ? "Closed - No rate set" : undefined}
+                className={`p-1 border-b border-r min-h-[60px] transition-colors relative overflow-hidden cursor-pointer ${
                   isBlocked
-                    ? "bg-gray-100 cursor-not-allowed"
+                    ? "bg-red-50"
                     : isSelected
-                    ? "bg-primary/20 ring-2 ring-primary ring-inset cursor-pointer"
-                    : hasCustomRate
-                    ? "bg-blue-50 cursor-pointer hover:bg-blue-100"
-                    : "hover:bg-muted/50 cursor-pointer"
+                    ? "bg-primary/20 ring-2 ring-primary ring-inset"
+                    : hasRate
+                    ? "bg-green-50 hover:bg-green-100"
+                    : "bg-gray-100 hover:bg-gray-200"
                 }`}
               >
-                {/* Diagonal strikethrough for blocked dates */}
-                {isBlocked && (
+                {/* Diagonal strikethrough for blocked or closed dates */}
+                {(isBlocked || isClosed) && (
                   <div 
                     className="absolute inset-0 pointer-events-none"
                     style={{
@@ -293,25 +325,25 @@ export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange
                         -45deg,
                         transparent,
                         transparent 4px,
-                        rgba(156, 163, 175, 0.4) 4px,
-                        rgba(156, 163, 175, 0.4) 5px
+                        ${isBlocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(156, 163, 175, 0.4)'} 4px,
+                        ${isBlocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(156, 163, 175, 0.4)'} 5px
                       )`
                     }}
                   />
                 )}
-                <div className={`text-xs font-medium relative z-10 ${isBlocked ? "text-gray-400" : ""}`}>
+                <div className={`text-xs font-medium relative z-10 ${(isBlocked || isClosed) ? "text-gray-400" : ""}`}>
                   {format(date, "d")}
                 </div>
-                <div className={`text-[10px] mt-0.5 relative z-10 ${
-                  isBlocked 
-                    ? "text-gray-400" 
-                    : hasCustomRate 
-                    ? "text-primary font-medium" 
-                    : "text-muted-foreground"
-                }`}>
-                  ₱{price.toLocaleString()}
-                </div>
-                {availability !== null && !isBlocked && (
+                {hasRate && price !== null ? (
+                  <div className="text-[10px] mt-0.5 relative z-10 text-green-700 font-medium">
+                    ₱{price.toLocaleString()}
+                  </div>
+                ) : (
+                  <div className="text-[10px] mt-0.5 relative z-10 text-gray-400">
+                    {isBlocked ? "Blocked" : "Closed"}
+                  </div>
+                )}
+                {availability !== null && hasRate && (
                   <div className="text-[10px] text-muted-foreground relative z-10">{availability}r</div>
                 )}
               </div>
@@ -327,46 +359,66 @@ export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <CalendarDays className="h-5 w-5" />
-          Daily Room Rates
+          Room Availability Calendar
         </h3>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button type="button" variant="outline" disabled={selectedDates.length === 0}>
-              Set Rates ({selectedDates.length} selected)
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Set Rates for Selected Dates</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label>Price per Night (₱)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder={basePrice.toString()}
-                  value={bulkPrice}
-                  onChange={(e) => setBulkPrice(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Available Rooms (optional)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="Leave empty to use default"
-                  value={bulkAvailability}
-                  onChange={(e) => setBulkAvailability(e.target.value)}
-                />
-              </div>
-              <Button type="button" onClick={handleBulkUpdate} disabled={loading} className="w-full">
-                {loading ? "Saving..." : "Apply to Selected Dates"}
+        <div className="flex gap-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            disabled={selectedDates.length === 0 || loading}
+            onClick={handleCloseDates}
+          >
+            Close Dates ({selectedDates.length})
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" disabled={selectedDates.length === 0}>
+                Open Dates ({selectedDates.length})
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Open Dates for Booking</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Set the price to make these {selectedDates.length} dates available for booking.
+                </p>
+                <div className="space-y-2">
+                  <Label>Price per Night (₱) *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    placeholder="Enter price"
+                    value={bulkPrice}
+                    onChange={(e) => setBulkPrice(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Available Rooms (optional)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Leave empty to use room default"
+                    value={bulkAvailability}
+                    onChange={(e) => setBulkAvailability(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  type="button" 
+                  onClick={handleBulkUpdate} 
+                  disabled={loading || !bulkPrice} 
+                  className="w-full"
+                >
+                  {loading ? "Saving..." : "Open Selected Dates"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Quick Selection Buttons */}
@@ -404,11 +456,11 @@ export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange
       </div>
 
       <div className="text-sm text-muted-foreground flex flex-wrap gap-4">
-        <span><span className="inline-block w-3 h-3 bg-blue-50 border mr-1"></span> Custom rate</span>
+        <span><span className="inline-block w-3 h-3 bg-green-50 border border-green-200 mr-1"></span> Available</span>
         <span><span className="inline-block w-3 h-3 bg-primary/20 border mr-1"></span> Selected</span>
         <span>
           <span 
-            className="inline-block w-3 h-3 bg-gray-100 border mr-1"
+            className="inline-block w-3 h-3 border mr-1"
             style={{
               background: `repeating-linear-gradient(
                 -45deg,
@@ -418,7 +470,21 @@ export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange
                 rgba(156, 163, 175, 0.4) 3px
               )`
             }}
-          ></span> Closed/Blocked
+          ></span> Closed
+        </span>
+        <span>
+          <span 
+            className="inline-block w-3 h-3 border mr-1"
+            style={{
+              background: `repeating-linear-gradient(
+                -45deg,
+                #fef2f2,
+                #fef2f2 2px,
+                rgba(239, 68, 68, 0.3) 2px,
+                rgba(239, 68, 68, 0.3) 3px
+              )`
+            }}
+          ></span> Blocked
         </span>
       </div>
     </div>
