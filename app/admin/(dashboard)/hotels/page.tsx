@@ -6,17 +6,20 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Plus, Search, Star, MapPin, Edit } from "lucide-react"
 import { DeleteHotelButton } from "@/components/admin/delete-hotel-button"
+import { SortHeader } from "@/components/admin/sort-header"
 
 export default async function AdminHotelsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string }>
+  searchParams: Promise<{ search?: string; page?: string; sort?: string; ascending?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
   const search = params.search || ""
   const page = Number(params.page) || 1
   const perPage = 10
+  const sortColumn = params.sort || "created_at"
+  const ascending = params.ascending === "true"
 
   let query = supabase.from("hotels").select("*", { count: "exact" })
 
@@ -28,7 +31,7 @@ export default async function AdminHotelsPage({
     data: hotels,
     count,
     error,
-  } = await query.order("created_at", { ascending: false }).range((page - 1) * perPage, page * perPage - 1)
+  } = await query.order(sortColumn, { ascending }).range((page - 1) * perPage, page * perPage - 1)
 
   const totalPages = Math.ceil((count || 0) / perPage)
 
@@ -66,9 +69,29 @@ export default async function AdminHotelsPage({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="pb-3 text-left font-medium">Hotel</th>
-                      <th className="pb-3 text-left font-medium hidden md:table-cell">Location</th>
-                      <th className="pb-3 text-left font-medium hidden sm:table-cell">Rating</th>
+                      <SortHeader
+                        column="name"
+                        label="Hotel"
+                        currentSort={sortColumn}
+                        currentAscending={ascending}
+                        searchParams={{ search, page: page.toString() }}
+                      />
+                      <SortHeader
+                        column="city"
+                        label="Location"
+                        currentSort={sortColumn}
+                        currentAscending={ascending}
+                        searchParams={{ search, page: page.toString() }}
+                        className="hidden md:table-cell"
+                      />
+                      <SortHeader
+                        column="star_rating"
+                        label="Rating"
+                        currentSort={sortColumn}
+                        currentAscending={ascending}
+                        searchParams={{ search, page: page.toString() }}
+                        className="hidden sm:table-cell"
+                      />
                       <th className="pb-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -137,12 +160,12 @@ export default async function AdminHotelsPage({
                   <div className="flex gap-2">
                     {page > 1 && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/hotels?search=${search}&page=${page - 1}`}>Previous</Link>
+                        <Link href={`/admin/hotels?search=${search}&sort=${sortColumn}&ascending=${ascending}&page=${page - 1}`}>Previous</Link>
                       </Button>
                     )}
                     {page < totalPages && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/hotels?search=${search}&page=${page + 1}`}>Next</Link>
+                        <Link href={`/admin/hotels?search=${search}&sort=${sortColumn}&ascending=${ascending}&page=${page + 1}`}>Next</Link>
                       </Button>
                     )}
                   </div>

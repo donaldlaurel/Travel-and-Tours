@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Plus, Search, Users, Edit } from "lucide-react"
 import { DeleteRoomButton } from "@/components/admin/delete-room-button"
+import { SortHeader } from "@/components/admin/sort-header"
 import { Suspense } from "react"
 import Loading from "./loading"
 
 export default async function AdminRoomsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; hotel?: string; page?: string }>
+  searchParams: Promise<{ search?: string; hotel?: string; page?: string; sort?: string; ascending?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
@@ -20,7 +21,8 @@ export default async function AdminRoomsPage({
   const hotelFilter = params.hotel || ""
   const page = Number(params.page) || 1
   const perPage = 10
-  const sort = params.sort || "created_at desc" // Use default sort option
+  const sortColumn = params.sort || "created_at"
+  const ascending = params.ascending === "true"
 
   // Fetch hotels for filter dropdown
   const { data: hotels } = await supabase
@@ -44,11 +46,8 @@ export default async function AdminRoomsPage({
     query = query.eq("hotel_id", hotelFilter)
   }
 
-  if (sort) {
-    query = query.order(sort.split(" ")[0], { ascending: sort.split(" ")[1] === "asc" })
-  }
-
   const { data: rooms, count, error } = await query
+    .order(sortColumn, { ascending })
     .range((page - 1) * perPage, page * perPage - 1)
 
   const totalPages = Math.ceil((count || 0) / perPage)
@@ -100,11 +99,44 @@ export default async function AdminRoomsPage({
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="pb-3 text-left font-medium hidden md:table-cell">Hotel</th>
-                        <th className="pb-3 text-left font-medium">Room Type</th>
-                        <th className="pb-3 text-left font-medium hidden sm:table-cell">Capacity</th>
-                        <th className="pb-3 text-left font-medium">Price</th>
-                        <th className="pb-3 text-left font-medium hidden lg:table-cell">Available</th>
+                        <SortHeader
+                          column="hotels.name"
+                          label="Hotel"
+                          currentSort={sortColumn}
+                          currentAscending={ascending}
+                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          className="hidden md:table-cell"
+                        />
+                        <SortHeader
+                          column="name"
+                          label="Room Type"
+                          currentSort={sortColumn}
+                          currentAscending={ascending}
+                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                        />
+                        <SortHeader
+                          column="max_guests"
+                          label="Capacity"
+                          currentSort={sortColumn}
+                          currentAscending={ascending}
+                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          className="hidden sm:table-cell"
+                        />
+                        <SortHeader
+                          column="price_per_night"
+                          label="Price"
+                          currentSort={sortColumn}
+                          currentAscending={ascending}
+                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                        />
+                        <SortHeader
+                          column="available_rooms"
+                          label="Available"
+                          currentSort={sortColumn}
+                          currentAscending={ascending}
+                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          className="hidden lg:table-cell"
+                        />
                         <th className="pb-3 text-right font-medium">Actions</th>
                       </tr>
                     </thead>
@@ -188,14 +220,14 @@ export default async function AdminRoomsPage({
                     <div className="flex gap-2">
                       {page > 1 && (
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&page=${page - 1}`}>
+                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&sort=${sortColumn}&ascending=${ascending}&page=${page - 1}`}>
                             Previous
                           </Link>
                         </Button>
                       )}
                       {page < totalPages && (
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&page=${page + 1}`}>
+                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&sort=${sortColumn}&ascending=${ascending}&page=${page + 1}`}>
                             Next
                           </Link>
                         </Button>
