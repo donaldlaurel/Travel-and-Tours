@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ImageUpload } from "@/components/admin/image-upload"
+import { RoomRateCalendar } from "@/components/admin/room-rate-calendar"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const ROOM_AMENITIES = [
   "Air Conditioning",

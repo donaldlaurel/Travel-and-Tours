@@ -11,6 +11,7 @@ export interface Hotel {
   price_per_night: number
   main_image: string | null
   amenities: string[]
+  child_policy: string | null
   created_at: string
   updated_at: string
   avg_rating?: number
@@ -32,10 +33,24 @@ export interface RoomType {
   name: string
   description: string | null
   max_guests: number
+  max_adults: number
+  max_children: number
+  breakfast_included: number
   price_per_night: number
+  base_price: number
   amenities: string[]
   image_url: string | null
   available_rooms: number
+  created_at: string
+  updated_at: string
+}
+
+export interface RoomRate {
+  id: string
+  room_type_id: string
+  date: string
+  price: number
+  available_rooms: number | null
   created_at: string
   updated_at: string
 }

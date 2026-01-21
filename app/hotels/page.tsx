@@ -11,7 +11,10 @@ interface PageProps {
     city?: string
     checkIn?: string
     checkOut?: string
-    guests?: string
+    rooms?: string
+    adults?: string
+    children?: string
+    childrenAges?: string
     minPrice?: string
     maxPrice?: string
     stars?: string
@@ -33,7 +36,10 @@ export default async function HotelsPage({ searchParams }: PageProps) {
             initialCity={params.city}
             initialCheckIn={params.checkIn ? new Date(params.checkIn) : undefined}
             initialCheckOut={params.checkOut ? new Date(params.checkOut) : undefined}
-            initialGuests={params.guests ? Number.parseInt(params.guests) : 2}
+            initialRooms={params.rooms ? Number.parseInt(params.rooms) : 1}
+            initialAdults={params.adults ? Number.parseInt(params.adults) : 2}
+            initialChildren={params.children ? Number.parseInt(params.children) : 0}
+            initialChildrenAges={params.childrenAges ? params.childrenAges.split(",").map(Number) : []}
           />
         </div>
       </div>
@@ -64,7 +70,10 @@ async function HotelResults({
     city?: string
     checkIn?: string
     checkOut?: string
-    guests?: string
+    rooms?: string
+    adults?: string
+    children?: string
+    childrenAges?: string
     minPrice?: string
     maxPrice?: string
     stars?: string
@@ -128,12 +137,15 @@ async function HotelResults({
     )
   }
 
+  const totalGuests = (searchParams.adults ? Number.parseInt(searchParams.adults) : 2) + 
+                      (searchParams.children ? Number.parseInt(searchParams.children) : 0)
+
   return (
     <HotelList
       hotels={filteredHotels}
       checkIn={searchParams.checkIn}
       checkOut={searchParams.checkOut}
-      guests={searchParams.guests ? Number.parseInt(searchParams.guests) : undefined}
+      guests={totalGuests}
       totalCount={filteredHotels.length}
       city={searchParams.city}
     />

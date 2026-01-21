@@ -32,6 +32,17 @@ const AMENITIES = [
   "Concierge",
 ]
 
+const CHILD_POLICIES = [
+  "Children of all ages are welcome",
+  "Children ages 0-2 stay free when using existing bedding",
+  "Children ages 0-5 stay free when using existing bedding",
+  "Children ages 0-12 stay free when using existing bedding",
+  "One child under 6 years stays free when using existing bedding",
+  "One child under 12 years stays free when using existing bedding",
+  "No children allowed",
+  "Only children above 12 years are allowed",
+]
+
 interface HotelFormProps {
   hotel?: Hotel
   existingGalleryImages?: string[]
@@ -49,9 +60,9 @@ export function HotelForm({ hotel, existingGalleryImages = [] }: HotelFormProps)
     city: hotel?.city || "",
     country: hotel?.country || "Philippines",
     star_rating: hotel?.star_rating?.toString() || "3",
-    price_per_night: hotel?.price_per_night?.toString() || "",
     main_image: hotel?.main_image || "",
     amenities: hotel?.amenities || [],
+    child_policy: hotel?.child_policy || "Children of all ages are welcome",
   })
 
   const [galleryImages, setGalleryImages] = useState<string[]>(existingGalleryImages)
@@ -70,9 +81,9 @@ export function HotelForm({ hotel, existingGalleryImages = [] }: HotelFormProps)
       city: formData.city,
       country: formData.country,
       star_rating: Number.parseInt(formData.star_rating),
-      price_per_night: Number.parseFloat(formData.price_per_night),
       main_image: formData.main_image || null,
       amenities: formData.amenities,
+      child_policy: formData.child_policy,
     }
 
     let hotelId = hotel?.id
@@ -207,29 +218,33 @@ export function HotelForm({ hotel, existingGalleryImages = [] }: HotelFormProps)
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="price_per_night">Price per Night (₱) *</Label>
-          <Input
-            id="price_per_night"
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.price_per_night}
-            onChange={(e) => setFormData({ ...formData, price_per_night: e.target.value })}
-            required
-          />
-        </div>
+      <div className="space-y-2">
+        <ImageUpload
+          label="Main Image"
+          value={formData.main_image}
+          onChange={(url) => setFormData({ ...formData, main_image: url })}
+          folder="hotels"
+          aspectRatio="video"
+        />
+      </div>
 
-        <div className="space-y-2">
-          <ImageUpload
-            label="Main Image"
-            value={formData.main_image}
-            onChange={(url) => setFormData({ ...formData, main_image: url })}
-            folder="hotels"
-            aspectRatio="video"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="child_policy">Child Policy</Label>
+        <Select
+          value={formData.child_policy}
+          onValueChange={(value) => setFormData({ ...formData, child_policy: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select child policy" />
+          </SelectTrigger>
+          <SelectContent>
+            {CHILD_POLICIES.map((policy) => (
+              <SelectItem key={policy} value={policy}>
+                {policy}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <MultiImageUpload
