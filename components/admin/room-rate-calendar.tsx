@@ -25,15 +25,26 @@ interface RoomRate {
   available_rooms: number | null
 }
 
+interface AvailabilityBlock {
+  id: string
+  start_date: string
+  end_date: string
+  block_type: string
+  reason: string | null
+}
+
 interface RoomRateCalendarProps {
   roomTypeId: string
+  hotelId?: string
   basePrice: number
   onRatesChange?: (rates: RoomRate[]) => void
 }
 
-export function RoomRateCalendar({ roomTypeId, basePrice, onRatesChange }: RoomRateCalendarProps) {
+export function RoomRateCalendar({ roomTypeId, hotelId, basePrice, onRatesChange }: RoomRateCalendarProps) {
   const [startMonth, setStartMonth] = useState(new Date())
   const [rates, setRates] = useState<Record<string, RoomRate>>({})
+  const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set())
+  const [blockInfo, setBlockInfo] = useState<Record<string, AvailabilityBlock>>({})
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [bulkPrice, setBulkPrice] = useState("")
   const [bulkAvailability, setBulkAvailability] = useState("")
@@ -46,6 +57,7 @@ export function RoomRateCalendar({ roomTypeId, basePrice, onRatesChange }: RoomR
   useEffect(() => {
     if (roomTypeId) {
       loadRates()
+      loadBlocks(roomTypeId, setBlockedDates, setBlockInfo)
     }
   }, [roomTypeId, startMonth])
 
@@ -67,6 +79,53 @@ export function RoomRateCalendar({ roomTypeId, basePrice, onRatesChange }: RoomR
         ratesMap[rate.date] = rate
       })
       setRates(ratesMap)
+    }
+  }
+
+  const loadBlocks = async () => {
+    const supabase = createClient()
+    const start = startOfMonth(startMonth)
+    const end = endOfMonth(addMonths(startMonth, 2))
+    const startStr = format(start, "yyyy-MM-dd")
+    const endStr = format(end, "yyyy-MM-dd")
+
+    // Build query for blocks affecting this room or its hotel
+    let query = supabase
+      .from("availability_blocks")
+      .select("*")
+      .lte("start_date", endStr)
+      .gte("end_date", startStr)
+
+    // Filter by room_type_id or hotel_id
+    if (hotelId) {
+      query = query.or(`room_type_id.eq.${roomTypeId},and(hotel_id.eq.${hotelId},room_type_id.is.null)`)
+    } else {
+      query = query.eq("room_type_id", roomTypeId)
+    }
+
+    const { data: blocks } = await query
+
+    if (blocks) {
+      const blocked = new Set<string>()
+      const info: Record<string, AvailabilityBlock> = {}
+      
+      blocks.forEach((block) => {
+        // Generate all dates in the block range that overlap with our view
+        const blockStart = new Date(block.start_date)
+        const blockEnd = new Date(block.end_date)
+        const viewStart = start > blockStart ? start : blockStart
+        const viewEnd = end < blockEnd ? end : blockEnd
+        
+        const datesInRange = eachDayOfInterval({ start: viewStart, end: viewEnd })
+        datesInRange.forEach((date) => {
+          const dateStr = format(date, "yyyy-MM-dd")
+          blocked.add(dateStr)
+          info[dateStr] = block
+        })
+      })
+      
+      setBlockedDates(blocked)
+      setBlockInfo(info)
     }
   }
 
@@ -202,29 +261,58 @@ export function RoomRateCalendar({ roomTypeId, basePrice, onRatesChange }: RoomR
 
           {/* Day cells */}
           {days.map((date) => {
+            const dateStr = format(date, "yyyy-MM-dd")
             const price = getRateForDate(date)
             const availability = getAvailabilityForDate(date)
             const isSelected = isDateSelected(date)
-            const hasCustomRate = rates[format(date, "yyyy-MM-dd")]
+            const hasCustomRate = rates[dateStr]
+            const isBlocked = blockedDates.has(dateStr)
+            const block = blockInfo[dateStr]
 
             return (
               <div
                 key={date.toISOString()}
-                onClick={(e) => handleDateClick(date, e)}
-                className={`p-1 border-b border-r min-h-[60px] cursor-pointer transition-colors ${
-                  isSelected
-                    ? "bg-primary/20 ring-2 ring-primary ring-inset"
+                onClick={(e) => !isBlocked && handleDateClick(date, e)}
+                title={isBlocked ? `Blocked: ${block?.block_type}${block?.reason ? ` - ${block.reason}` : ''}` : undefined}
+                className={`p-1 border-b border-r min-h-[60px] transition-colors relative overflow-hidden ${
+                  isBlocked
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : isSelected
+                    ? "bg-primary/20 ring-2 ring-primary ring-inset cursor-pointer"
                     : hasCustomRate
-                    ? "bg-blue-50"
-                    : "hover:bg-muted/50"
+                    ? "bg-blue-50 cursor-pointer hover:bg-blue-100"
+                    : "hover:bg-muted/50 cursor-pointer"
                 }`}
               >
-                <div className="text-xs font-medium">{format(date, "d")}</div>
-                <div className={`text-[10px] mt-0.5 ${hasCustomRate ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                {/* Diagonal strikethrough for blocked dates */}
+                {isBlocked && (
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: `repeating-linear-gradient(
+                        -45deg,
+                        transparent,
+                        transparent 4px,
+                        rgba(156, 163, 175, 0.4) 4px,
+                        rgba(156, 163, 175, 0.4) 5px
+                      )`
+                    }}
+                  />
+                )}
+                <div className={`text-xs font-medium relative z-10 ${isBlocked ? "text-gray-400" : ""}`}>
+                  {format(date, "d")}
+                </div>
+                <div className={`text-[10px] mt-0.5 relative z-10 ${
+                  isBlocked 
+                    ? "text-gray-400" 
+                    : hasCustomRate 
+                    ? "text-primary font-medium" 
+                    : "text-muted-foreground"
+                }`}>
                   ₱{price.toLocaleString()}
                 </div>
-                {availability !== null && (
-                  <div className="text-[10px] text-muted-foreground">{availability}r</div>
+                {availability !== null && !isBlocked && (
+                  <div className="text-[10px] text-muted-foreground relative z-10">{availability}r</div>
                 )}
               </div>
             )
@@ -318,6 +406,20 @@ export function RoomRateCalendar({ roomTypeId, basePrice, onRatesChange }: RoomR
       <div className="text-sm text-muted-foreground flex flex-wrap gap-4">
         <span><span className="inline-block w-3 h-3 bg-blue-50 border mr-1"></span> Custom rate</span>
         <span><span className="inline-block w-3 h-3 bg-primary/20 border mr-1"></span> Selected</span>
+        <span>
+          <span 
+            className="inline-block w-3 h-3 bg-gray-100 border mr-1"
+            style={{
+              background: `repeating-linear-gradient(
+                -45deg,
+                #f3f4f6,
+                #f3f4f6 2px,
+                rgba(156, 163, 175, 0.4) 2px,
+                rgba(156, 163, 175, 0.4) 3px
+              )`
+            }}
+          ></span> Closed/Blocked
+        </span>
       </div>
     </div>
   )

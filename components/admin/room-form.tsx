@@ -281,6 +281,7 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
           {room?.id && formData.base_price && (
             <RoomRateCalendar
               roomTypeId={room.id}
+              hotelId={formData.hotel_id}
               basePrice={Number.parseFloat(formData.base_price) || 0}
             />
           )}
