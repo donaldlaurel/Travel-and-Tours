@@ -5,6 +5,7 @@ import { HotelInfo } from "@/components/hotel-info"
 import { RoomList } from "@/components/room-list"
 import { HotelReviews } from "@/components/hotel-reviews"
 import { BookingSidebar } from "@/components/booking-sidebar"
+import { getRoomAvailability, mergeRoomTypesWithAvailability } from "@/lib/availability"
 import type { Metadata } from "next"
 
 interface PageProps {
@@ -51,7 +52,14 @@ export default async function HotelDetailPage({ params, searchParams }: PageProp
     .order("display_order", { ascending: true })
 
   // Fetch room types
-  const { data: roomTypes } = await supabase.from("room_types").select("*").eq("hotel_id", id).order("price_per_night")
+  const { data: roomTypesData } = await supabase.from("room_types").select("*").eq("hotel_id", id).order("base_price")
+
+  // Calculate room availability based on dates and existing bookings
+  let roomTypes = roomTypesData || []
+  if (search.checkIn && search.checkOut && roomTypesData) {
+    const availability = await getRoomAvailability(id, search.checkIn, search.checkOut)
+    roomTypes = mergeRoomTypesWithAvailability(roomTypesData, availability)
+  }
 
   // Fetch reviews
   const { data: reviewsData } = await supabase
