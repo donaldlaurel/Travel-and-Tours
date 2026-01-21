@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowUp, ArrowDown } from "lucide-react"
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
 
 interface SortHeaderProps {
   column: string
@@ -9,9 +9,10 @@ interface SortHeaderProps {
   currentSort?: string
   currentAscending?: boolean
   searchParams: Record<string, string>
+  className?: string
 }
 
-export function SortHeader({ column, label, currentSort, currentAscending, searchParams }: SortHeaderProps) {
+export function SortHeader({ column, label, currentSort, currentAscending, searchParams, className }: SortHeaderProps) {
   const isActive = currentSort === column
   const newAscending = isActive ? !currentAscending : true
   
@@ -21,18 +22,20 @@ export function SortHeader({ column, label, currentSort, currentAscending, searc
   newParams.set("page", "1") // Reset to page 1 when sorting changes
 
   return (
-    <th className="pb-3 text-left font-medium">
+    <th className={`pb-3 text-left font-medium ${className || ""}`}>
       <Link
         href={`?${newParams.toString()}`}
-        className="inline-flex items-center gap-2 hover:text-foreground/70 transition-colors"
+        className="inline-flex items-center gap-2 hover:text-foreground/70 transition-colors cursor-pointer"
       >
         {label}
-        {isActive && (
-          newAscending ? (
-            <ArrowUp className="h-4 w-4" />
+        {isActive ? (
+          currentAscending ? (
+            <ArrowUp className="h-4 w-4 text-primary" />
           ) : (
-            <ArrowDown className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4 text-primary" />
           )
+        ) : (
+          <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
         )}
       </Link>
     </th>

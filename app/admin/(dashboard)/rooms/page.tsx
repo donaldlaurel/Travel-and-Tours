@@ -99,14 +99,7 @@ export default async function AdminRoomsPage({
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <SortHeader
-                          column="hotels.name"
-                          label="Hotel"
-                          currentSort={sortColumn}
-                          currentAscending={ascending}
-                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
-                          className="hidden md:table-cell"
-                        />
+                        <th className="pb-3 text-left font-medium hidden md:table-cell">Hotel</th>
                         <SortHeader
                           column="name"
                           label="Room Type"
@@ -123,15 +116,15 @@ export default async function AdminRoomsPage({
                           className="hidden sm:table-cell"
                         />
                         <SortHeader
-                          column="price_per_night"
+                          column="base_price"
                           label="Price"
                           currentSort={sortColumn}
                           currentAscending={ascending}
                           searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
                         />
                         <SortHeader
-                          column="available_rooms"
-                          label="Available"
+                          column="total_rooms"
+                          label="Total Rooms"
                           currentSort={sortColumn}
                           currentAscending={ascending}
                           searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
@@ -181,18 +174,18 @@ export default async function AdminRoomsPage({
                             </div>
                           </td>
                           <td className="py-4">
-                            <span className="font-medium">₱{Number(room.price_per_night).toLocaleString()}</span>
+                            <span className="font-medium">₱{Number(room.base_price).toLocaleString()}</span>
                             <span className="text-muted-foreground text-sm">/night</span>
                           </td>
                           <td className="py-4 hidden lg:table-cell">
                             <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                              room.available_rooms > 5 
+                              room.total_rooms > 5 
                                 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : room.available_rooms > 0
+                                : room.total_rooms > 0
                                 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                                 : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                             }`}>
-                              {room.available_rooms} rooms
+                              {room.total_rooms} rooms
                             </span>
                           </td>
                           <td className="py-4">
