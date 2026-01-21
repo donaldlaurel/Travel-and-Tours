@@ -30,24 +30,31 @@ interface SearchFormProps {
   initialRooms?: number
   initialAdults?: number
   initialChildren?: number
+  initialChildrenAges?: number[]
 }
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface GuestSelectorProps {
   rooms: number
   adults: number
   children: number
+  childrenAges: number[]
   onRoomsChange: (value: number) => void
   onAdultsChange: (value: number) => void
   onChildrenChange: (value: number) => void
+  onChildAgeChange: (index: number, age: number) => void
 }
 
 function GuestSelector({
   rooms,
   adults,
   children,
+  childrenAges,
   onRoomsChange,
   onAdultsChange,
   onChildrenChange,
+  onChildAgeChange,
 }: GuestSelectorProps) {
   const CounterRow = ({
     label,
@@ -95,18 +102,47 @@ function GuestSelector({
 
   return (
     <div className="w-72 p-4">
-      <CounterRow label="Rooms" value={rooms} onChange={onRoomsChange} min={1} max={8} />
+      <CounterRow label="Room" value={rooms} onChange={onRoomsChange} min={1} max={8} />
       <div className="border-t" />
-      <CounterRow label="Adults" description="Age 18+" value={adults} onChange={onAdultsChange} min={1} max={16} />
+      <CounterRow label="Adults" description="Ages 18 or above" value={adults} onChange={onAdultsChange} min={1} max={16} />
       <div className="border-t" />
       <CounterRow
         label="Children"
-        description="Age 0-17"
+        description="Ages 0-17"
         value={children}
         onChange={onChildrenChange}
         min={0}
         max={8}
       />
+      
+      {/* Children Age Selectors */}
+      {children > 0 && (
+        <div className="mt-4 pt-4 border-t">
+          <p className="text-sm text-muted-foreground mb-3">
+            For accurate room pricing, make sure to enter your children&apos;s correct ages.
+          </p>
+          <div className="space-y-3">
+            {Array.from({ length: children }).map((_, index) => (
+              <Select
+                key={index}
+                value={childrenAges[index] !== undefined && childrenAges[index] >= 0 ? childrenAges[index].toString() : undefined}
+                onValueChange={(value) => onChildAgeChange(index, parseInt(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={`Age of Child ${index + 1}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 18 }).map((_, age) => (
+                    <SelectItem key={age} value={age.toString()}>
+                      {age === 0 ? "Under 1 year old" : `${age} ${age === 1 ? "year old" : "years old"}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -278,6 +314,7 @@ export function SearchForm({
   initialRooms = 1,
   initialAdults = 2,
   initialChildren = 0,
+  initialChildrenAges = [],
 }: SearchFormProps) {
   const router = useRouter()
   const [city, setCity] = useState(initialCity)
@@ -286,6 +323,25 @@ export function SearchForm({
   const [rooms, setRooms] = useState(initialRooms)
   const [adults, setAdults] = useState(initialAdults)
   const [children, setChildren] = useState(initialChildren)
+  const [childrenAges, setChildrenAges] = useState<number[]>(initialChildrenAges)
+
+  const handleChildrenChange = (value: number) => {
+    setChildren(value)
+    // Adjust childrenAges array when children count changes
+    if (value > childrenAges.length) {
+      // Add more ages with undefined/default
+      setChildrenAges([...childrenAges, ...Array(value - childrenAges.length).fill(-1)])
+    } else if (value < childrenAges.length) {
+      // Remove extra ages
+      setChildrenAges(childrenAges.slice(0, value))
+    }
+  }
+
+  const handleChildAgeChange = (index: number, age: number) => {
+    const newAges = [...childrenAges]
+    newAges[index] = age
+    setChildrenAges(newAges)
+  }
 
   const handleSearch = () => {
     const params = new URLSearchParams()
@@ -295,6 +351,11 @@ export function SearchForm({
     params.set("rooms", rooms.toString())
     params.set("adults", adults.toString())
     params.set("children", children.toString())
+    if (children > 0) {
+      // Include all children ages, using 0 as default for unselected ages
+      const validAges = childrenAges.map(age => age >= 0 ? age : 0)
+      params.set("childrenAges", validAges.join(","))
+    }
 
     router.push(`/hotels?${params.toString()}`)
   }
@@ -403,9 +464,11 @@ export function SearchForm({
                 rooms={rooms}
                 adults={adults}
                 children={children}
+                childrenAges={childrenAges}
                 onRoomsChange={setRooms}
                 onAdultsChange={setAdults}
-                onChildrenChange={setChildren}
+                onChildrenChange={handleChildrenChange}
+                onChildAgeChange={handleChildAgeChange}
               />
             </PopoverContent>
           </Popover>
