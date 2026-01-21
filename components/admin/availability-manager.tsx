@@ -158,18 +158,28 @@ export function AvailabilityManager({ hotelId, roomTypeId }: AvailabilityManager
 
     const supabase = createClient()
 
+    // Handle "all" value for room_type_id
+    const roomTypeValue = formData.room_type_id === "all" ? null : formData.room_type_id || roomTypeId || null
+
     const blockData = {
       hotel_id: formData.hotel_id || hotelId || null,
-      room_type_id: formData.room_type_id || roomTypeId || null,
+      room_type_id: roomTypeValue,
       start_date: formData.start_date,
       end_date: formData.end_date,
       block_type: formData.block_type,
       reason: formData.reason || null,
     }
 
-    const { error } = await supabase.from("availability_blocks").insert(blockData)
+    console.log("[v0] Submitting block data:", blockData)
 
-    if (!error) {
+    const { data, error } = await supabase.from("availability_blocks").insert(blockData).select()
+
+    console.log("[v0] Insert result - data:", data, "error:", error)
+
+    if (error) {
+      console.error("[v0] Error creating block:", error.message, error.details, error.hint)
+      alert(`Error creating block: ${error.message}`)
+    } else {
       setDialogOpen(false)
       setFormData({
         hotel_id: hotelId || "",
