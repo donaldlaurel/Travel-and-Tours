@@ -47,9 +47,10 @@ interface RoomRateCalendarProps {
   roomTypeId: string
   hotelId?: string
   onRatesChange?: (rates: RoomRate[]) => void
+  onSurchargeAdded?: () => void
 }
 
-export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRateCalendarProps) {
+export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange, onSurchargeAdded }: RoomRateCalendarProps) {
   const [startMonth, setStartMonth] = useState(new Date())
   const [rates, setRates] = useState<Record<string, RoomRate>>({})
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set())
@@ -224,6 +225,7 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
       } else {
         console.log("[v0] Surcharge added successfully:", data)
         await loadSurchargesFunc()
+        onSurchargeAdded?.()
         setSelectedDates([])
         setSurchargeName("")
         setSurchargePrice("")

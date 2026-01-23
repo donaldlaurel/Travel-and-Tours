@@ -82,6 +82,7 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
     extra_person_price: room?.extra_person_price?.toString() || "",
     extra_person_breakfast: room?.extra_person_breakfast || false,
   })
+  const [surchargeRefreshTrigger, setSurchargeRefreshTrigger] = useState(0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -305,24 +306,6 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Surcharges</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Add additional charges that apply to bookings (e.g., resort fee, cleaning fee)
-          </p>
-        </CardHeader>
-        <CardContent>
-          {room?.id ? (
-            <SurchargesManager roomTypeId={room.id} />
-          ) : (
-            <p className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-              Save the room first to add surcharges.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle className="text-base">Availability & Pricing</CardTitle>
           <p className="text-sm text-muted-foreground">
             Rooms are closed by default. Select dates and set rates to make them available for booking.
@@ -333,10 +316,29 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
             <RoomRateCalendar
               roomTypeId={room.id}
               hotelId={formData.hotel_id}
+              onSurchargeAdded={() => setSurchargeRefreshTrigger(prev => prev + 1)}
             />
           ) : (
             <p className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
               Save the room first to manage availability and pricing using the calendar.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Surcharges</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Add additional charges that apply to bookings (e.g., resort fee, cleaning fee)
+          </p>
+        </CardHeader>
+        <CardContent>
+          {room?.id ? (
+            <SurchargesManager roomTypeId={room.id} refreshTrigger={surchargeRefreshTrigger} />
+          ) : (
+            <p className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+              Save the room first to add surcharges.
             </p>
           )}
         </CardContent>

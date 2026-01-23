@@ -40,24 +40,13 @@ interface Surcharge {
 
 interface SurchargesManagerProps {
   roomTypeId: string
+  refreshTrigger?: number
 }
 
-export function SurchargesManager({ roomTypeId }: SurchargesManagerProps) {
+export function SurchargesManager({ roomTypeId, refreshTrigger }: SurchargesManagerProps) {
   const [surcharges, setSurcharges] = useState<Surcharge[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  
-  const [formData, setFormData] = useState({
-    name: "",
-    price_per_night: "",
-    minimum_nights: "1",
-  })
-
-  useEffect(() => {
-    fetchSurcharges()
-  }, [roomTypeId])
 
   const fetchSurcharges = async () => {
     try {
@@ -77,41 +66,9 @@ export function SurchargesManager({ roomTypeId }: SurchargesManagerProps) {
     }
   }
 
-  const handleAddSurcharge = async () => {
-    if (!formData.name || !formData.price_per_night) {
-      setError("Please fill in all required fields")
-      return
-    }
-
-    setSaving(true)
-    setError(null)
-
-    try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from("room_surcharges")
-        .insert({
-          room_type_id: roomTypeId,
-          name: formData.name,
-          price_per_night: Number.parseFloat(formData.price_per_night),
-          minimum_nights: Number.parseInt(formData.minimum_nights) || 1,
-        })
-
-      if (error) throw error
-
-      setFormData({
-        name: "",
-        price_per_night: "",
-        minimum_nights: "1",
-      })
-      setDialogOpen(false)
-      await fetchSurcharges()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add surcharge")
-    } finally {
-      setSaving(false)
-    }
-  }
+  useEffect(() => {
+    fetchSurcharges()
+  }, [roomTypeId, refreshTrigger])
 
   const handleDeleteSurcharge = async (surchargeId: string) => {
     if (!confirm("Are you sure you want to delete this surcharge?")) return
@@ -142,74 +99,10 @@ export function SurchargesManager({ roomTypeId }: SurchargesManagerProps) {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Surcharge
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Surcharge</DialogTitle>
-            <DialogDescription>
-              Create a new surcharge for this room type
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="surcharge_name">Surcharge Name *</Label>
-              <Input
-                id="surcharge_name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Resort Fee, Cleaning Fee"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="surcharge_price">Price per Night (₱) *</Label>
-              <Input
-                id="surcharge_price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.price_per_night}
-                onChange={(e) => setFormData({ ...formData, price_per_night: e.target.value })}
-                placeholder="e.g., 500"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="surcharge_min_nights">Minimum Nights</Label>
-              <Input
-                id="surcharge_min_nights"
-                type="number"
-                min="1"
-                value={formData.minimum_nights}
-                onChange={(e) => setFormData({ ...formData, minimum_nights: e.target.value })}
-                placeholder="e.g., 1"
-              />
-              <p className="text-xs text-muted-foreground">
-                Surcharge applies only to bookings with at least this many nights
-              </p>
-            </div>
-
-            <Button
-              onClick={handleAddSurcharge}
-              disabled={saving}
-              className="w-full"
-            >
-              {saving ? "Adding..." : "Add Surcharge"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {surcharges.length === 0 ? (
-        <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-          No surcharges added yet. Click "Add Surcharge" to create one.
-        </div>
+        <p className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+          No surcharges added yet. Select dates on the calendar and use "Surcharge Dates" to add one.
+        </p>
       ) : (
         <Table>
           <TableHeader>
