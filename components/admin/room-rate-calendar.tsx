@@ -209,10 +209,12 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
 
       const { data, error } = await supabase.from("room_surcharges").insert({
         room_type_id: roomTypeId,
-        start_date: startDate,
-        end_date: endDate,
+        name: surchargeName,
+        price_per_night: parseFloat(surchargePrice),
         surcharge_name: surchargeName,
         surcharge_price: parseFloat(surchargePrice),
+        start_date: startDate,
+        end_date: endDate,
         minimum_nights: parseInt(minimumNights) || 0,
       }).select()
 
