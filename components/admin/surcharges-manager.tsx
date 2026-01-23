@@ -23,12 +23,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
+import { format } from "date-fns"
+
 interface Surcharge {
   id: string
   room_type_id: string
-  name: string
-  price_per_night: number
+  surcharge_name?: string
+  name?: string
+  surcharge_price?: number
+  price_per_night?: number
   minimum_nights: number
+  start_date?: string
+  end_date?: string
   created_at: string
 }
 
@@ -211,15 +217,25 @@ export function SurchargesManager({ roomTypeId }: SurchargesManagerProps) {
               <TableHead>Name</TableHead>
               <TableHead>Price per Night</TableHead>
               <TableHead>Minimum Nights</TableHead>
+              <TableHead>Date Range</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {surcharges.map((surcharge) => (
               <TableRow key={surcharge.id}>
-                <TableCell className="font-medium">{surcharge.name}</TableCell>
-                <TableCell>₱{Number(surcharge.price_per_night).toLocaleString()}</TableCell>
+                <TableCell className="font-medium">{surcharge.surcharge_name || surcharge.name}</TableCell>
+                <TableCell>₱{Number(surcharge.surcharge_price || surcharge.price_per_night).toLocaleString()}</TableCell>
                 <TableCell>{surcharge.minimum_nights} night{surcharge.minimum_nights !== 1 ? 's' : ''}</TableCell>
+                <TableCell className="text-sm">
+                  {surcharge.start_date && surcharge.end_date ? (
+                    <span className="text-muted-foreground">
+                      {format(new Date(surcharge.start_date), "MMM d, yyyy")} - {format(new Date(surcharge.end_date), "MMM d, yyyy")}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Always</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Button
                     variant="ghost"

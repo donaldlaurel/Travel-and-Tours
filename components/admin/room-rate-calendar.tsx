@@ -64,7 +64,7 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
   const [minimumNights, setMinimumNights] = useState("")
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [surchargeMode, setSurchargeMode] = useState(false) // Declare setSurchargeMode variable
+  const [surchargeDialogOpen, setSurchargeDialogOpen] = useState(false)
 
   // Generate 3 months array
   const months = [startMonth, addMonths(startMonth, 1), addMonths(startMonth, 2)]
@@ -226,6 +226,7 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
         setSurchargeName("")
         setSurchargePrice("")
         setMinimumNights("")
+        setSurchargeDialogOpen(false)
       }
     } catch (err) {
       console.error("[v0] Unexpected error:", err)
@@ -496,7 +497,7 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
           </Button>
 
           {/* Surcharge Dates Dialog */}
-          <Dialog>
+          <Dialog open={surchargeDialogOpen} onOpenChange={setSurchargeDialogOpen}>
             <DialogTrigger asChild>
               <Button 
                 type="button" 
