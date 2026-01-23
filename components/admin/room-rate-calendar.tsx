@@ -59,12 +59,12 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [bulkPrice, setBulkPrice] = useState("")
   const [bulkAvailability, setBulkAvailability] = useState("")
-  const [surchargeMode, setSurchargeMode] = useState(false)
   const [surchargeName, setSurchargeName] = useState("")
   const [surchargePrice, setSurchargePrice] = useState("")
   const [minimumNights, setMinimumNights] = useState("")
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [surchargeMode, setSurchargeMode] = useState(false) // Declare setSurchargeMode variable
 
   // Generate 3 months array
   const months = [startMonth, addMonths(startMonth, 1), addMonths(startMonth, 2)]
@@ -478,116 +478,115 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
           >
             Close Dates ({selectedDates.length})
           </Button>
-          <Dialog open={dialogOpen} onOpenChange={(open) => {
-            setDialogOpen(open)
-            if (!open) {
-              setSurchargeMode(false)
-              setSurchargeName("")
-              setSurchargePrice("")
-              setMinimumNights("")
-            }
-          }}>
+
+          {/* Surcharge Dates Dialog */}
+          <Dialog>
             <DialogTrigger asChild>
               <Button 
                 type="button" 
-                variant={surchargeMode ? "default" : "outline"}
+                variant="outline"
                 disabled={selectedDates.length === 0}
-                onClick={() => setSurchargeMode(!surchargeMode)}
               >
-                {surchargeMode ? "Surcharge Dates" : "Surcharge Dates"} ({selectedDates.length})
+                Surcharge Dates ({selectedDates.length})
               </Button>
             </DialogTrigger>
-            {surchargeMode ? (
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Surcharge for Selected Dates</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Add a surcharge to {selectedDates.length} selected date(s).
-                  </p>
-                  <div className="space-y-2">
-                    <Label>Surcharge Name *</Label>
-                    <Input
-                      type="text"
-                      placeholder="e.g., Resort Fee, Cleaning Fee"
-                      value={surchargeName}
-                      onChange={(e) => setSurchargeName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Surcharge Price per Night (₱) *</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="Enter price"
-                      value={surchargePrice}
-                      onChange={(e) => setSurchargePrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Minimum Nights (optional)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="Leave empty if no minimum"
-                      value={minimumNights}
-                      onChange={(e) => setMinimumNights(e.target.value)}
-                    />
-                  </div>
-                  <Button 
-                    type="button" 
-                    onClick={handleAddSurcharge} 
-                    disabled={loading || !surchargeName || !surchargePrice}
-                    className="w-full"
-                  >
-                    {loading ? "Adding..." : "Add Surcharge"}
-                  </Button>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Surcharge for Selected Dates</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Add a surcharge to {selectedDates.length} selected date(s).
+                </p>
+                <div className="space-y-2">
+                  <Label>Surcharge Name *</Label>
+                  <Input
+                    type="text"
+                    placeholder="e.g., Resort Fee, Cleaning Fee"
+                    value={surchargeName}
+                    onChange={(e) => setSurchargeName(e.target.value)}
+                  />
                 </div>
-              </DialogContent>
-            ) : (
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Open Dates for Booking</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Set the price to make these {selectedDates.length} dates available for booking.
-                  </p>
-                  <div className="space-y-2">
-                    <Label>Price per Night (₱) *</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      step="0.01"
-                      placeholder="Enter price"
-                      value={bulkPrice}
-                      onChange={(e) => setBulkPrice(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Available Rooms (optional)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="Leave empty to use room default"
-                      value={bulkAvailability}
-                      onChange={(e) => setBulkAvailability(e.target.value)}
-                    />
-                  </div>
-                  <Button 
-                    type="button" 
-                    onClick={handleBulkUpdate} 
-                    disabled={loading || !bulkPrice} 
-                    className="w-full"
-                  >
-                    {loading ? "Saving..." : "Open Selected Dates"}
-                  </Button>
+                <div className="space-y-2">
+                  <Label>Surcharge Price per Night (₱) *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter price"
+                    value={surchargePrice}
+                    onChange={(e) => setSurchargePrice(e.target.value)}
+                  />
                 </div>
-              </DialogContent>
-            )}
+                <div className="space-y-2">
+                  <Label>Minimum Nights (optional)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Leave empty if no minimum"
+                    value={minimumNights}
+                    onChange={(e) => setMinimumNights(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  type="button" 
+                  onClick={handleAddSurcharge} 
+                  disabled={loading || !surchargeName || !surchargePrice}
+                  className="w-full"
+                >
+                  {loading ? "Adding..." : "Add Surcharge"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Open Dates Dialog */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" disabled={selectedDates.length === 0}>
+                Open Dates ({selectedDates.length})
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Open Dates for Booking</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Set the price to make these {selectedDates.length} dates available for booking.
+                </p>
+                <div className="space-y-2">
+                  <Label>Price per Night (₱) *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    placeholder="Enter price"
+                    value={bulkPrice}
+                    onChange={(e) => setBulkPrice(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Available Rooms (optional)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Leave empty to use room default"
+                    value={bulkAvailability}
+                    onChange={(e) => setBulkAvailability(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  type="button" 
+                  onClick={handleBulkUpdate} 
+                  disabled={loading || !bulkPrice} 
+                  className="w-full"
+                >
+                  {loading ? "Saving..." : "Open Selected Dates"}
+                </Button>
+              </div>
+            </DialogContent>
           </Dialog>
         </div>
       </div>
