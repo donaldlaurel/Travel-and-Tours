@@ -13,22 +13,17 @@ import Loading from "./loading"
 export default async function AdminRoomsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; hotel?: string; page?: string; sort?: string; ascending?: string }>
+  searchParams: Promise<{ search?: string; page?: string; sort?: string; ascending?: string; hotel?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
   const search = params.search || ""
-  const hotelFilter = params.hotel || ""
   const page = Number(params.page) || 1
   const perPage = 10
   const sortColumn = params.sort || "created_at"
   const ascending = params.ascending === "true"
-
-  // Fetch hotels for filter dropdown
-  const { data: hotels } = await supabase
-    .from("hotels")
-    .select("id, name")
-    .order("name", { ascending: true })
+  const hotelFilter = params.hotel || "" // Declare hotelFilter variable
+  const { data: hotels } = await getHotels() // Fetch hotels data
 
   // Fetch room types with hotel info
   let query = supabase
@@ -38,44 +33,45 @@ export default async function AdminRoomsPage({
       hotels:hotel_id (id, name, city)
     `, { count: "exact" })
 
+  let allRoomsData: any[] = []
+  let error: any = null
+  let count: number | null = null
+
   if (search) {
-    query = query.ilike("name", `%${search}%`)
+    // Search in both room type name AND hotel name
+    query = query.or(`name.ilike.%${search}%,hotels.name.ilike.%${search}%`)
   }
 
   if (hotelFilter) {
+    // Filter by hotel if hotelFilter is set
     query = query.eq("hotel_id", hotelFilter)
   }
 
-  // Handle sorting - use Supabase order only for direct columns
-  if (sortColumn === "hotel_name") {
-    // For hotel sorting, we'll sort in JavaScript after fetching
-    const { data: allRooms, count: totalCount } = await query
-  } else {
-    // For direct column sorting, use Supabase order
-    const { data: sortedRooms, count: totalCount } = await query
-      .order(sortColumn, { ascending })
-  }
-
-  // Fetch without pagination first if sorting by hotel, then paginate in JS
-  let { data: allRoomsData, count, error } = await query
-
   // Sort in JavaScript if needed for relational fields
-  if (sortColumn === "hotel_name" && allRoomsData) {
-    allRoomsData.sort((a, b) => {
-      const hotelA = (a.hotels as any)?.name || ""
-      const hotelB = (b.hotels as any)?.name || ""
-      const comparison = hotelA.localeCompare(hotelB)
-      return ascending ? comparison : -comparison
-    })
-    // Apply pagination after sorting
-    allRoomsData = allRoomsData.slice((page - 1) * perPage, page * perPage)
+  if (sortColumn === "hotel_name") {
+    const { data: rooms, error: err, count: totalCount } = await query
+    allRoomsData = rooms || []
+    error = err
+    count = totalCount
+
+    if (allRoomsData) {
+      allRoomsData.sort((a, b) => {
+        const hotelA = (a.hotels as any)?.name || ""
+        const hotelB = (b.hotels as any)?.name || ""
+        const comparison = hotelA.localeCompare(hotelB)
+        return ascending ? comparison : -comparison
+      })
+      // Apply pagination after sorting
+      allRoomsData = allRoomsData.slice((page - 1) * perPage, page * perPage)
+    }
   } else if (sortColumn !== "hotel_name") {
     // If not sorting by hotel, use the paginated Supabase result
-    const { data: rooms, error: err } = await query
+    const { data: rooms, error: err, count: totalCount } = await query
       .order(sortColumn, { ascending })
       .range((page - 1) * perPage, page * perPage - 1)
-    allRoomsData = rooms
+    allRoomsData = rooms || []
     error = err
+    count = totalCount
   }
 
   const rooms = allRoomsData
@@ -102,20 +98,8 @@ export default async function AdminRoomsPage({
             <form className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input name="search" placeholder="Search rooms..." defaultValue={search} className="pl-9" />
+                <Input name="search" placeholder="Search rooms or hotels..." defaultValue={search} className="pl-9" />
               </div>
-              <select
-                name="hotel"
-                defaultValue={hotelFilter}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="">All Hotels</option>
-                {hotels?.map((hotel) => (
-                  <option key={hotel.id} value={hotel.id}>
-                    {hotel.name}
-                  </option>
-                ))}
-              </select>
               <Button type="submit">Filter</Button>
             </form>
           </CardHeader>
@@ -133,7 +117,7 @@ export default async function AdminRoomsPage({
                           label="Hotel"
                           currentSort={sortColumn}
                           currentAscending={ascending}
-                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          searchParams={{ search, page: page.toString() }}
                           className="hidden md:table-cell"
                         />
                         <SortHeader
@@ -141,14 +125,14 @@ export default async function AdminRoomsPage({
                           label="Room Type"
                           currentSort={sortColumn}
                           currentAscending={ascending}
-                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          searchParams={{ search, page: page.toString() }}
                         />
                         <SortHeader
                           column="max_guests"
                           label="Capacity"
                           currentSort={sortColumn}
                           currentAscending={ascending}
-                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          searchParams={{ search, page: page.toString() }}
                           className="hidden sm:table-cell"
                         />
                         <SortHeader
@@ -156,14 +140,14 @@ export default async function AdminRoomsPage({
                           label="Price"
                           currentSort={sortColumn}
                           currentAscending={ascending}
-                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          searchParams={{ search, page: page.toString() }}
                         />
                         <SortHeader
                           column="total_rooms"
                           label="Total Rooms"
                           currentSort={sortColumn}
                           currentAscending={ascending}
-                          searchParams={{ search, hotel: hotelFilter, page: page.toString() }}
+                          searchParams={{ search, page: page.toString() }}
                           className="hidden lg:table-cell"
                         />
                         <th className="pb-3 text-right font-medium">Actions</th>
@@ -249,14 +233,14 @@ export default async function AdminRoomsPage({
                     <div className="flex gap-2">
                       {page > 1 && (
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&sort=${sortColumn}&ascending=${ascending}&page=${page - 1}`}>
+                          <Link href={`/admin/rooms?search=${search}&sort=${sortColumn}&ascending=${ascending}&page=${page - 1}`}>
                             Previous
                           </Link>
                         </Button>
                       )}
                       {page < totalPages && (
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/admin/rooms?search=${search}&hotel=${hotelFilter}&sort=${sortColumn}&ascending=${ascending}&page=${page + 1}`}>
+                          <Link href={`/admin/rooms?search=${search}&sort=${sortColumn}&ascending=${ascending}&page=${page + 1}`}>
                             Next
                           </Link>
                         </Button>

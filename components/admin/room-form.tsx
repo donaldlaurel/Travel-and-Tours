@@ -163,21 +163,27 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="hotel_id">Hotel *</Label>
-          <Select
-            value={formData.hotel_id}
-            onValueChange={(value) => setFormData({ ...formData, hotel_id: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a hotel" />
-            </SelectTrigger>
-            <SelectContent>
-              {hotels.map((hotel) => (
-                <SelectItem key={hotel.id} value={hotel.id}>
-                  {hotel.name} - {hotel.city}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {room ? (
+            <div className="h-10 rounded-md border border-input bg-muted px-3 py-2 text-sm flex items-center">
+              {hotels.find(h => h.id === formData.hotel_id)?.name} - {hotels.find(h => h.id === formData.hotel_id)?.city}
+            </div>
+          ) : (
+            <Select
+              value={formData.hotel_id}
+              onValueChange={(value) => setFormData({ ...formData, hotel_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a hotel" />
+              </SelectTrigger>
+              <SelectContent>
+                {hotels.map((hotel) => (
+                  <SelectItem key={hotel.id} value={hotel.id}>
+                    {hotel.name} - {hotel.city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="space-y-2">

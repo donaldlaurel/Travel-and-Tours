@@ -639,13 +639,33 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange, onSurchar
 
       {/* Calendar Navigation */}
       <div className="flex items-center justify-between">
-        <Button type="button" variant="ghost" size="icon" onClick={handlePrevMonths}>
+        <Button 
+          type="button" 
+          variant="ghost" 
+          size="icon" 
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            handlePrevMonths(e)
+            setSelectedDates([])
+          }}
+        >
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <span className="text-sm text-muted-foreground">
           {format(months[0], "MMM yyyy")} - {format(months[2], "MMM yyyy")}
         </span>
-        <Button type="button" variant="ghost" size="icon" onClick={handleNextMonths}>
+        <Button 
+          type="button" 
+          variant="ghost" 
+          size="icon" 
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            handleNextMonths(e)
+            setSelectedDates([])
+          }}
+        >
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
