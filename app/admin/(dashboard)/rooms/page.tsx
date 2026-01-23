@@ -53,6 +53,25 @@ export default async function AdminRoomsPage({
       allRoomsData = allData
     }
     count = allRoomsData.length
+
+    // Fetch today's room rates for pricing
+    const today = new Date().toISOString().split("T")[0]
+    const { data: todayRates } = await supabase
+      .from("room_rates")
+      .select("room_type_id, price")
+      .eq("date", today)
+
+    // Create a map of room_type_id to today's price
+    const todayPriceMap: Record<string, number> = {}
+    todayRates?.forEach((rate) => {
+      todayPriceMap[rate.room_type_id] = Number(rate.price)
+    })
+
+    // Add today's price to each room
+    allRoomsData = allRoomsData.map((room) => ({
+      ...room,
+      todayPrice: todayPriceMap[room.id] ?? Number(room.base_price),
+    }))
   }
 
   // Sort in JavaScript if needed for relational fields
@@ -149,18 +168,10 @@ export default async function AdminRoomsPage({
                         />
                         <SortHeader
                           column="base_price"
-                          label="Price"
+                          label="Price (Today)"
                           currentSort={sortColumn}
                           currentAscending={ascending}
                           searchParams={{ search, page: page.toString() }}
-                        />
-                        <SortHeader
-                          column="total_rooms"
-                          label="Total Rooms"
-                          currentSort={sortColumn}
-                          currentAscending={ascending}
-                          searchParams={{ search, page: page.toString() }}
-                          className="hidden lg:table-cell"
                         />
                         <th className="pb-3 text-right font-medium">Actions</th>
                       </tr>
@@ -206,19 +217,8 @@ export default async function AdminRoomsPage({
                             </div>
                           </td>
                           <td className="py-4">
-                            <span className="font-medium">₱{Number(room.base_price).toLocaleString()}</span>
+                            <span className="font-medium">₱{Number(room.todayPrice).toLocaleString()}</span>
                             <span className="text-muted-foreground text-sm">/night</span>
-                          </td>
-                          <td className="py-4 hidden lg:table-cell">
-                            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                              room.total_rooms > 5 
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : room.total_rooms > 0
-                                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                            }`}>
-                              {room.total_rooms} rooms
-                            </span>
                           </td>
                           <td className="py-4">
                             <div className="flex items-center justify-end gap-2">
