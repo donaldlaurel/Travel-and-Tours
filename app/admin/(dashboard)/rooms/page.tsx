@@ -70,7 +70,7 @@ export default async function AdminRoomsPage({
     // Add today's price to each room
     allRoomsData = allRoomsData.map((room) => ({
       ...room,
-      todayPrice: todayPriceMap[room.id] ?? Number(room.base_price),
+      todayPrice: todayPriceMap[room.id] ?? Number(room.base_price) ?? 0,
     }))
   }
 
@@ -91,18 +91,17 @@ export default async function AdminRoomsPage({
         return ascending ? comparison : -comparison
       })
     }
-  } else {
-    // For other columns, sort by Supabase
-    if (!search) {
-      // Only use Supabase sort if no search, otherwise we need to filter first
-      const { data: sortedRooms, error: sortError, count: sortCount } = await query
-        .order(sortColumn, { ascending })
-      if (!sortError) {
-        allRoomsData = sortedRooms || []
-        count = sortCount
-      }
+  } else if (sortColumn === "base_price") {
+    if (allRoomsData) {
+      allRoomsData.sort((a, b) => {
+        const priceA = Number(a.todayPrice) || 0
+        const priceB = Number(b.todayPrice) || 0
+        const comparison = priceA - priceB
+        return ascending ? comparison : -comparison
+      })
     }
   }
+  // Note: Don't re-fetch from Supabase after we've already mapped prices, as it would lose the todayPrice data
 
   // Apply pagination after all filtering and sorting
   const paginatedRooms = allRoomsData.slice((page - 1) * perPage, page * perPage)
