@@ -192,31 +192,47 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
     if (selectedDates.length === 0 || !surchargeName || !surchargePrice) return
     setLoading(true)
 
-    const supabase = createClient()
-    const sortedDates = selectedDates.sort((a, b) => a.getTime() - b.getTime())
-    const startDate = format(sortedDates[0], "yyyy-MM-dd")
-    const endDate = format(sortedDates[sortedDates.length - 1], "yyyy-MM-dd")
+    try {
+      const supabase = createClient()
+      const sortedDates = selectedDates.sort((a, b) => a.getTime() - b.getTime())
+      const startDate = format(sortedDates[0], "yyyy-MM-dd")
+      const endDate = format(sortedDates[sortedDates.length - 1], "yyyy-MM-dd")
 
-    const { error } = await supabase.from("room_surcharges").insert({
-      room_type_id: roomTypeId,
-      start_date: startDate,
-      end_date: endDate,
-      surcharge_name: surchargeName,
-      surcharge_price: parseFloat(surchargePrice),
-      minimum_nights: parseInt(minimumNights) || 0,
-    })
+      console.log("[v0] Adding surcharge:", {
+        roomTypeId,
+        startDate,
+        endDate,
+        surchargeName,
+        surchargePrice,
+        minimumNights,
+      })
 
-    if (!error) {
-      await loadSurchargesFunc()
-      setSelectedDates([])
-      setSurchargeName("")
-      setSurchargePrice("")
-      setMinimumNights("")
-      setSurchargeMode(false)
-      setDialogOpen(false)
+      const { data, error } = await supabase.from("room_surcharges").insert({
+        room_type_id: roomTypeId,
+        start_date: startDate,
+        end_date: endDate,
+        surcharge_name: surchargeName,
+        surcharge_price: parseFloat(surchargePrice),
+        minimum_nights: parseInt(minimumNights) || 0,
+      }).select()
+
+      if (error) {
+        console.error("[v0] Surcharge insert error:", error)
+        alert(`Error adding surcharge: ${error.message}`)
+      } else {
+        console.log("[v0] Surcharge added successfully:", data)
+        await loadSurchargesFunc()
+        setSelectedDates([])
+        setSurchargeName("")
+        setSurchargePrice("")
+        setMinimumNights("")
+      }
+    } catch (err) {
+      console.error("[v0] Unexpected error:", err)
+      alert(`Unexpected error: ${err instanceof Error ? err.message : "Unknown error"}`)
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   const getDaysInMonth = (date: Date) => {
