@@ -61,16 +61,29 @@ export default async function AdminRoomsPage({
       .select("room_type_id, price")
       .eq("date", today)
 
+    // Fetch today's surcharges
+    const { data: todaySurcharges } = await supabase
+      .from("room_surcharges")
+      .select("room_type_id, surcharge_price")
+      .lte("start_date", today)
+      .gte("end_date", today)
+
     // Create a map of room_type_id to today's price
     const todayPriceMap: Record<string, number> = {}
     todayRates?.forEach((rate) => {
       todayPriceMap[rate.room_type_id] = Number(rate.price)
     })
 
-    // Add today's price to each room
+    // Create a map of room_type_id to surcharge total for today
+    const surchargeMap: Record<string, number> = {}
+    todaySurcharges?.forEach((surcharge) => {
+      surchargeMap[surcharge.room_type_id] = (surchargeMap[surcharge.room_type_id] || 0) + Number(surcharge.surcharge_price)
+    })
+
+    // Add today's price + surcharge to each room
     allRoomsData = allRoomsData.map((room) => ({
       ...room,
-      todayPrice: todayPriceMap[room.id] ?? Number(room.base_price) ?? 0,
+      todayPrice: (todayPriceMap[room.id] ?? Number(room.base_price) ?? 0) + (surchargeMap[room.id] || 0),
     }))
   }
 
