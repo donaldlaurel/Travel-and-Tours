@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { ImageUpload } from "@/components/admin/image-upload"
 import { RoomRateCalendar } from "@/components/admin/room-rate-calendar"
+import { SurchargesManager } from "@/components/admin/surcharges-manager"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const ROOM_AMENITIES = [
@@ -53,6 +54,8 @@ interface RoomType {
   available_rooms: number
   image_url: string | null
   amenities: string[]
+  extra_person_price?: number | null
+  extra_person_breakfast?: boolean
 }
 
 interface RoomFormProps {
@@ -76,6 +79,8 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
     available_rooms: room?.available_rooms?.toString() || "10",
     image_url: room?.image_url || "",
     amenities: room?.amenities || [],
+    extra_person_price: room?.extra_person_price?.toString() || "",
+    extra_person_breakfast: room?.extra_person_breakfast || false,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,6 +112,8 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
       available_rooms: Number.parseInt(formData.available_rooms),
       image_url: formData.image_url || null,
       amenities: formData.amenities,
+      extra_person_price: formData.extra_person_price ? Number.parseFloat(formData.extra_person_price) : null,
+      extra_person_breakfast: formData.extra_person_breakfast,
     }
 
     if (room) {
@@ -254,6 +261,63 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
               <p className="text-xs text-muted-foreground">Total rooms of this type</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Extra Person</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Add pricing and breakfast options for additional guests beyond the room's maximum capacity
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="extra_person_price">Extra Person Price per Night (₱)</Label>
+              <Input
+                id="extra_person_price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.extra_person_price}
+                onChange={(e) => setFormData({ ...formData, extra_person_price: e.target.value })}
+                placeholder="e.g., 500"
+              />
+              <p className="text-xs text-muted-foreground">Price for each additional guest</p>
+            </div>
+
+            <div className="space-y-2 flex items-end">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="extra_person_breakfast"
+                  checked={formData.extra_person_breakfast}
+                  onCheckedChange={(checked) => setFormData({ ...formData, extra_person_breakfast: checked as boolean })}
+                />
+                <Label htmlFor="extra_person_breakfast" className="cursor-pointer font-normal">
+                  Include Breakfast for Extra Person
+                </Label>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Surcharges</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Add additional charges that apply to bookings (e.g., resort fee, cleaning fee)
+          </p>
+        </CardHeader>
+        <CardContent>
+          {room?.id ? (
+            <SurchargesManager roomTypeId={room.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+              Save the room first to add surcharges.
+            </p>
+          )}
         </CardContent>
       </Card>
 
