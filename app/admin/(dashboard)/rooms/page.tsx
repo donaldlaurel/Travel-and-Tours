@@ -13,7 +13,7 @@ import Loading from "./loading"
 export default async function AdminRoomsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string; sort?: string; ascending?: string; hotel?: string }>
+  searchParams: Promise<{ search?: string; page?: string; sort?: string; ascending?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
@@ -22,8 +22,6 @@ export default async function AdminRoomsPage({
   const perPage = 10
   const sortColumn = params.sort || "created_at"
   const ascending = params.ascending === "true"
-  const hotelFilter = params.hotel || "" // Declare hotelFilter variable
-  const { data: hotels } = await getHotels() // Fetch hotels data
 
   // Fetch room types with hotel info
   let query = supabase
@@ -38,22 +36,32 @@ export default async function AdminRoomsPage({
   let count: number | null = null
 
   if (search) {
-    // Search in both room type name AND hotel name
-    query = query.or(`name.ilike.%${search}%,hotels.name.ilike.%${search}%`)
+    // Search in room type name (hotel name search is done in JavaScript after fetch)
+    query = query.ilike("name", `%${search}%`)
   }
 
-  if (hotelFilter) {
-    // Filter by hotel if hotelFilter is set
-    query = query.eq("hotel_id", hotelFilter)
+  // Fetch all data first, then filter by hotel name in JavaScript if searching
+  const { data: allData, error: fetchError, count: totalCount } = await query
+
+  if (fetchError) {
+    error = fetchError
+  } else if (allData) {
+    // Filter by hotel name in JavaScript if search term exists
+    if (search) {
+      allRoomsData = allData.filter((room) => {
+        const hotelName = (room.hotels as any)?.name?.toLowerCase() || ""
+        const searchLower = search.toLowerCase()
+        const roomName = room.name?.toLowerCase() || ""
+        return hotelName.includes(searchLower) || roomName.includes(searchLower)
+      })
+    } else {
+      allRoomsData = allData
+    }
+    count = allRoomsData.length
   }
 
   // Sort in JavaScript if needed for relational fields
   if (sortColumn === "hotel_name") {
-    const { data: rooms, error: err, count: totalCount } = await query
-    allRoomsData = rooms || []
-    error = err
-    count = totalCount
-
     if (allRoomsData) {
       allRoomsData.sort((a, b) => {
         const hotelA = (a.hotels as any)?.name || ""
@@ -61,20 +69,29 @@ export default async function AdminRoomsPage({
         const comparison = hotelA.localeCompare(hotelB)
         return ascending ? comparison : -comparison
       })
-      // Apply pagination after sorting
-      allRoomsData = allRoomsData.slice((page - 1) * perPage, page * perPage)
     }
-  } else if (sortColumn !== "hotel_name") {
-    // If not sorting by hotel, use the paginated Supabase result
-    const { data: rooms, error: err, count: totalCount } = await query
-      .order(sortColumn, { ascending })
-      .range((page - 1) * perPage, page * perPage - 1)
-    allRoomsData = rooms || []
-    error = err
-    count = totalCount
+  } else if (sortColumn === "name") {
+    if (allRoomsData) {
+      allRoomsData.sort((a, b) => {
+        const comparison = (a.name || "").localeCompare(b.name || "")
+        return ascending ? comparison : -comparison
+      })
+    }
+  } else {
+    // For other columns, sort by Supabase
+    if (!search) {
+      // Only use Supabase sort if no search, otherwise we need to filter first
+      const { data: sortedRooms, error: sortError, count: sortCount } = await query
+        .order(sortColumn, { ascending })
+      if (!sortError) {
+        allRoomsData = sortedRooms || []
+        count = sortCount
+      }
+    }
   }
 
-  const rooms = allRoomsData
+  // Apply pagination after all filtering and sorting
+  const paginatedRooms = allRoomsData.slice((page - 1) * perPage, page * perPage)
   const totalPages = Math.ceil((count || 0) / perPage)
 
   return (
@@ -106,7 +123,7 @@ export default async function AdminRoomsPage({
           <CardContent>
             {error ? (
               <p className="text-destructive">Error loading rooms: {error.message}</p>
-            ) : rooms && rooms.length > 0 ? (
+            ) : paginatedRooms && paginatedRooms.length > 0 ? (
               <div className="space-y-4">
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -154,7 +171,7 @@ export default async function AdminRoomsPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {rooms.map((room: any) => (
+                      {paginatedRooms.map((room: any) => (
                         <tr key={room.id} className="border-b border-border last:border-0">
                           <td className="py-4 hidden md:table-cell">
                             <div>
