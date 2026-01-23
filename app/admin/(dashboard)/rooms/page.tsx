@@ -35,22 +35,17 @@ export default async function AdminRoomsPage({
   let error: any = null
   let count: number | null = null
 
-  if (search) {
-    // Search in room type name (hotel name search is done in JavaScript after fetch)
-    query = query.ilike("name", `%${search}%`)
-  }
-
-  // Fetch all data first, then filter by hotel name in JavaScript if searching
+  // Fetch all data first, then filter in JavaScript for both room and hotel name
   const { data: allData, error: fetchError, count: totalCount } = await query
 
   if (fetchError) {
     error = fetchError
   } else if (allData) {
-    // Filter by hotel name in JavaScript if search term exists
+    // Filter by both room name and hotel name in JavaScript
     if (search) {
+      const searchLower = search.toLowerCase()
       allRoomsData = allData.filter((room) => {
         const hotelName = (room.hotels as any)?.name?.toLowerCase() || ""
-        const searchLower = search.toLowerCase()
         const roomName = room.name?.toLowerCase() || ""
         return hotelName.includes(searchLower) || roomName.includes(searchLower)
       })
