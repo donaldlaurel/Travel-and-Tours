@@ -458,7 +458,16 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange, onSurchar
                 <div className={`text-xs font-medium relative z-10 ${(isBlocked || isClosed) ? "text-gray-400" : ""}`}>
                   {format(date, "d")}
                 </div>
-                {hasSurcharge && surcharge ? (
+                {hasSurcharge && surcharge && hasRate && price !== null ? (
+                  <>
+                    <div className="text-[10px] mt-0.5 relative z-10 text-green-700 font-medium">
+                      ₱{price.toLocaleString()}
+                    </div>
+                    <div className="text-[10px] mt-0.5 relative z-10 text-orange-700 font-medium">
+                      ₱{surcharge.surcharge_price.toLocaleString()}
+                    </div>
+                  </>
+                ) : hasSurcharge && surcharge ? (
                   <div className="text-[10px] mt-0.5 relative z-10 text-orange-700 font-medium">
                     ₱{surcharge.surcharge_price.toLocaleString()}
                   </div>
