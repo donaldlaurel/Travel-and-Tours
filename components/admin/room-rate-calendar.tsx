@@ -33,6 +33,16 @@ interface AvailabilityBlock {
   reason: string | null
 }
 
+interface SurchargeDate {
+  id?: string
+  room_type_id: string
+  start_date: string
+  end_date: string
+  surcharge_name: string
+  surcharge_price: number
+  minimum_nights: number
+}
+
 interface RoomRateCalendarProps {
   roomTypeId: string
   hotelId?: string
@@ -44,9 +54,15 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
   const [rates, setRates] = useState<Record<string, RoomRate>>({})
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set())
   const [blockInfo, setBlockInfo] = useState<Record<string, AvailabilityBlock>>({})
+  const [surchargeDates, setSurchargeDates] = useState<Set<string>>(new Set())
+  const [surchargeInfo, setSurchargeInfo] = useState<Record<string, SurchargeDate>>({})
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [bulkPrice, setBulkPrice] = useState("")
   const [bulkAvailability, setBulkAvailability] = useState("")
+  const [surchargeMode, setSurchargeMode] = useState(false)
+  const [surchargeName, setSurchargeName] = useState("")
+  const [surchargePrice, setSurchargePrice] = useState("")
+  const [minimumNights, setMinimumNights] = useState("")
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -56,7 +72,8 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
   useEffect(() => {
     if (roomTypeId) {
       loadRates()
-      loadBlocks(roomTypeId, setBlockedDates, setBlockInfo)
+      loadBlocks()
+      loadSurchargesFunc()
     }
   }, [roomTypeId, startMonth])
 
@@ -108,12 +125,14 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
       const blocked = new Set<string>()
       const info: Record<string, AvailabilityBlock> = {}
       
+      const start2 = startOfMonth(startMonth)
+      const end2 = endOfMonth(addMonths(startMonth, 2))
       blocks.forEach((block) => {
         // Generate all dates in the block range that overlap with our view
         const blockStart = new Date(block.start_date)
         const blockEnd = new Date(block.end_date)
-        const viewStart = start > blockStart ? start : blockStart
-        const viewEnd = end < blockEnd ? end : blockEnd
+        const viewStart = start2 > blockStart ? start2 : blockStart
+        const viewEnd = end2 < blockEnd ? end2 : blockEnd
         
         const datesInRange = eachDayOfInterval({ start: viewStart, end: viewEnd })
         datesInRange.forEach((date) => {
@@ -126,6 +145,78 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
       setBlockedDates(blocked)
       setBlockInfo(info)
     }
+  }
+
+  const loadSurchargesFunc = async () => {
+    const supabase = createClient()
+    const start = startOfMonth(startMonth)
+    const end = endOfMonth(addMonths(startMonth, 2))
+    const startStr = format(start, "yyyy-MM-dd")
+    const endStr = format(end, "yyyy-MM-dd")
+
+    const { data: surcharges } = await supabase
+      .from("room_surcharges")
+      .select("*")
+      .eq("room_type_id", roomTypeId)
+      .lte("start_date", endStr)
+      .gte("end_date", startStr)
+
+    if (surcharges) {
+      const charged = new Set<string>()
+      const info: Record<string, SurchargeDate> = {}
+      const start2 = startOfMonth(startMonth)
+      const end2 = endOfMonth(addMonths(startMonth, 2))
+
+      surcharges.forEach((surcharge) => {
+        const chargeStart = new Date(surcharge.start_date)
+        const chargeEnd = new Date(surcharge.end_date)
+        const viewStart = start2 > chargeStart ? start2 : chargeStart
+        const viewEnd = end2 < chargeEnd ? end2 : chargeEnd
+
+        const datesInRange = eachDayOfInterval({ start: viewStart, end: viewEnd })
+        datesInRange.forEach((date) => {
+          const dateStr = format(date, "yyyy-MM-dd")
+          charged.add(dateStr)
+          info[dateStr] = surcharge
+        })
+      })
+
+      setSurchargeDates(charged)
+      setSurchargeInfo(info)
+    }
+  }
+
+  const handleAddSurcharge = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (selectedDates.length === 0 || !surchargeName || !surchargePrice) return
+    setLoading(true)
+
+    const supabase = createClient()
+    const sortedDates = selectedDates.sort((a, b) => a.getTime() - b.getTime())
+    const startDate = format(sortedDates[0], "yyyy-MM-dd")
+    const endDate = format(sortedDates[sortedDates.length - 1], "yyyy-MM-dd")
+
+    const { error } = await supabase.from("room_surcharges").insert({
+      room_type_id: roomTypeId,
+      start_date: startDate,
+      end_date: endDate,
+      surcharge_name: surchargeName,
+      surcharge_price: parseFloat(surchargePrice),
+      minimum_nights: parseInt(minimumNights) || 0,
+    })
+
+    if (!error) {
+      await loadSurchargesFunc()
+      setSelectedDates([])
+      setSurchargeName("")
+      setSurchargePrice("")
+      setMinimumNights("")
+      setSurchargeMode(false)
+      setDialogOpen(false)
+    }
+
+    setLoading(false)
   }
 
   const getDaysInMonth = (date: Date) => {
@@ -298,6 +389,8 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
             const hasRate = hasRateSet(date)
             const isBlocked = blockedDates.has(dateStr)
             const block = blockInfo[dateStr]
+            const hasSurcharge = surchargeDates.has(dateStr)
+            const surcharge = surchargeInfo[dateStr]
             // Dates without a rate are considered closed
             const isClosed = !hasRate && !isBlocked
 
@@ -305,10 +398,20 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
               <div
                 key={date.toISOString()}
                 onClick={(e) => handleDateClick(date, e)}
-                title={isBlocked ? `Blocked: ${block?.block_type}${block?.reason ? ` - ${block.reason}` : ''}` : isClosed ? "Closed - No rate set" : undefined}
+                title={
+                  hasSurcharge
+                    ? `Surcharge: ${surcharge?.surcharge_name} - ₱${surcharge?.surcharge_price}`
+                    : isBlocked
+                    ? `Blocked: ${block?.block_type}${block?.reason ? ` - ${block.reason}` : ""}`
+                    : isClosed
+                    ? "Closed - No rate set"
+                    : undefined
+                }
                 className={`p-1 border-b border-r min-h-[60px] transition-colors relative overflow-hidden cursor-pointer ${
                   isBlocked
                     ? "bg-red-50"
+                    : hasSurcharge
+                    ? "bg-orange-50 hover:bg-orange-100"
                     : isSelected
                     ? "bg-primary/20 ring-2 ring-primary ring-inset"
                     : hasRate
@@ -325,8 +428,8 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
                         -45deg,
                         transparent,
                         transparent 4px,
-                        ${isBlocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(156, 163, 175, 0.4)'} 4px,
-                        ${isBlocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(156, 163, 175, 0.4)'} 5px
+                        ${isBlocked ? "rgba(239, 68, 68, 0.3)" : "rgba(156, 163, 175, 0.4)"} 4px,
+                        ${isBlocked ? "rgba(239, 68, 68, 0.3)" : "rgba(156, 163, 175, 0.4)"} 5px
                       )`
                     }}
                   />
@@ -334,7 +437,11 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
                 <div className={`text-xs font-medium relative z-10 ${(isBlocked || isClosed) ? "text-gray-400" : ""}`}>
                   {format(date, "d")}
                 </div>
-                {hasRate && price !== null ? (
+                {hasSurcharge && surcharge ? (
+                  <div className="text-[10px] mt-0.5 relative z-10 text-orange-700 font-medium">
+                    ₱{surcharge.surcharge_price.toLocaleString()}
+                  </div>
+                ) : hasRate && price !== null ? (
                   <div className="text-[10px] mt-0.5 relative z-10 text-green-700 font-medium">
                     ₱{price.toLocaleString()}
                   </div>
@@ -361,7 +468,7 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
           <CalendarDays className="h-5 w-5" />
           Room Availability Calendar
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
             type="button" 
             variant="outline" 
@@ -371,52 +478,116 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
           >
             Close Dates ({selectedDates.length})
           </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open)
+            if (!open) {
+              setSurchargeMode(false)
+              setSurchargeName("")
+              setSurchargePrice("")
+              setMinimumNights("")
+            }
+          }}>
             <DialogTrigger asChild>
-              <Button type="button" disabled={selectedDates.length === 0}>
-                Open Dates ({selectedDates.length})
+              <Button 
+                type="button" 
+                variant={surchargeMode ? "default" : "outline"}
+                disabled={selectedDates.length === 0}
+                onClick={() => setSurchargeMode(!surchargeMode)}
+              >
+                {surchargeMode ? "Surcharge Dates" : "Surcharge Dates"} ({selectedDates.length})
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Open Dates for Booking</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <p className="text-sm text-muted-foreground">
-                  Set the price to make these {selectedDates.length} dates available for booking.
-                </p>
-                <div className="space-y-2">
-                  <Label>Price per Night (₱) *</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    placeholder="Enter price"
-                    value={bulkPrice}
-                    onChange={(e) => setBulkPrice(e.target.value)}
-                    required
-                  />
+            {surchargeMode ? (
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Surcharge for Selected Dates</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Add a surcharge to {selectedDates.length} selected date(s).
+                  </p>
+                  <div className="space-y-2">
+                    <Label>Surcharge Name *</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Resort Fee, Cleaning Fee"
+                      value={surchargeName}
+                      onChange={(e) => setSurchargeName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Surcharge Price per Night (₱) *</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Enter price"
+                      value={surchargePrice}
+                      onChange={(e) => setSurchargePrice(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Minimum Nights (optional)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Leave empty if no minimum"
+                      value={minimumNights}
+                      onChange={(e) => setMinimumNights(e.target.value)}
+                    />
+                  </div>
+                  <Button 
+                    type="button" 
+                    onClick={handleAddSurcharge} 
+                    disabled={loading || !surchargeName || !surchargePrice}
+                    className="w-full"
+                  >
+                    {loading ? "Adding..." : "Add Surcharge"}
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>Available Rooms (optional)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Leave empty to use room default"
-                    value={bulkAvailability}
-                    onChange={(e) => setBulkAvailability(e.target.value)}
-                  />
+              </DialogContent>
+            ) : (
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Open Dates for Booking</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Set the price to make these {selectedDates.length} dates available for booking.
+                  </p>
+                  <div className="space-y-2">
+                    <Label>Price per Night (₱) *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      placeholder="Enter price"
+                      value={bulkPrice}
+                      onChange={(e) => setBulkPrice(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Available Rooms (optional)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Leave empty to use room default"
+                      value={bulkAvailability}
+                      onChange={(e) => setBulkAvailability(e.target.value)}
+                    />
+                  </div>
+                  <Button 
+                    type="button" 
+                    onClick={handleBulkUpdate} 
+                    disabled={loading || !bulkPrice} 
+                    className="w-full"
+                  >
+                    {loading ? "Saving..." : "Open Selected Dates"}
+                  </Button>
                 </div>
-                <Button 
-                  type="button" 
-                  onClick={handleBulkUpdate} 
-                  disabled={loading || !bulkPrice} 
-                  className="w-full"
-                >
-                  {loading ? "Saving..." : "Open Selected Dates"}
-                </Button>
-              </div>
-            </DialogContent>
+              </DialogContent>
+            )}
           </Dialog>
         </div>
       </div>
@@ -457,6 +628,7 @@ export function RoomRateCalendar({ roomTypeId, hotelId, onRatesChange }: RoomRat
 
       <div className="text-sm text-muted-foreground flex flex-wrap gap-4">
         <span><span className="inline-block w-3 h-3 bg-green-50 border border-green-200 mr-1"></span> Available</span>
+        <span><span className="inline-block w-3 h-3 bg-orange-50 border border-orange-200 mr-1"></span> Surcharge</span>
         <span><span className="inline-block w-3 h-3 bg-primary/20 border mr-1"></span> Selected</span>
         <span>
           <span 
