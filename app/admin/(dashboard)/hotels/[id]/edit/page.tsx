@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { HotelForm } from "@/components/admin/hotel-form"
 import { AvailabilityManager } from "@/components/admin/availability-manager"
+import { HotelSurchargesManager } from "@/components/admin/hotel-surcharges-manager"
 
 export default async function EditHotelPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -40,6 +41,18 @@ export default async function EditHotelPage({ params }: { params: Promise<{ id: 
       </Card>
 
       <AvailabilityManager hotelId={id} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Surcharges</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Additional charges that apply to bookings (e.g., resort fee, cleaning fee)
+          </p>
+        </CardHeader>
+        <CardContent>
+          <HotelSurchargesManager hotelId={id} />
+        </CardContent>
+      </Card>
     </div>
   )
 }
