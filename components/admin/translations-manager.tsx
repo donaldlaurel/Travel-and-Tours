@@ -40,6 +40,12 @@ interface Translation {
   updated_at: string;
 }
 
+interface TranslationPair {
+  key: string;
+  en: string;
+  ko: string;
+}
+
 const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'ko', name: 'Korean' },
@@ -47,38 +53,53 @@ const LANGUAGES = [
 
 export default function TranslationsManager() {
   const [translations, setTranslations] = useState<Translation[]>([]);
-  const [filteredTranslations, setFilteredTranslations] = useState<Translation[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [pairedTranslations, setPairedTranslations] = useState<TranslationPair[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ key: '', value: '' });
+  const [deleteKey, setDeleteKey] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ key: '', en: '', ko: '' });
 
-  // Fetch translations
+  // Fetch all translations
   useEffect(() => {
-    fetchTranslations();
-  }, [selectedLanguage]);
+    fetchAllTranslations();
+  }, []);
 
-  // Filter translations
+  // Pair translations by key
   useEffect(() => {
-    const filtered = translations.filter(
-      (t) =>
-        t.language === selectedLanguage &&
-        (t.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          t.value.toLowerCase().includes(searchTerm.toLowerCase()))
+    const pairs: { [key: string]: TranslationPair } = {};
+
+    translations.forEach((t) => {
+      if (!pairs[t.key]) {
+        pairs[t.key] = { key: t.key, en: '', ko: '' };
+      }
+      pairs[t.key][t.language as 'en' | 'ko'] = t.value;
+    });
+
+    const paired = Object.values(pairs).filter(
+      (p) =>
+        p.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.ko.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    setFilteredTranslations(filtered);
-  }, [translations, selectedLanguage, searchTerm]);
 
-  const fetchTranslations = async () => {
+    setPairedTranslations(paired);
+  }, [translations, searchTerm]);
+
+  const fetchAllTranslations = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/translations?language=${selectedLanguage}`);
-      if (!response.ok) throw new Error('Failed to fetch');
-      const data = await response.json();
-      setTranslations(data);
+      // Fetch both languages
+      const enResponse = await fetch('/api/translations?language=en');
+      const koResponse = await fetch('/api/translations?language=ko');
+
+      if (!enResponse.ok || !koResponse.ok) throw new Error('Failed to fetch');
+
+      const enData = await enResponse.json();
+      const koData = await koResponse.json();
+
+      setTranslations([...enData, ...koData]);
     } catch (error) {
       console.error('Error fetching translations:', error);
     } finally {
@@ -87,52 +108,70 @@ export default function TranslationsManager() {
   };
 
   const handleSave = async () => {
-    if (!formData.key || !formData.value) {
-      alert('Key and value are required');
+    if (!formData.key || (!formData.en && !formData.ko)) {
+      alert('Key and at least one translation value are required');
       return;
     }
 
     try {
-      const response = await fetch('/api/translations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key: formData.key,
-          language: selectedLanguage,
-          value: formData.value,
-        }),
-      });
+      // Save English translation
+      if (formData.en) {
+        await fetch('/api/translations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: formData.key,
+            language: 'en',
+            value: formData.en,
+          }),
+        });
+      }
 
-      if (!response.ok) throw new Error('Failed to save');
+      // Save Korean translation
+      if (formData.ko) {
+        await fetch('/api/translations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: formData.key,
+            language: 'ko',
+            value: formData.ko,
+          }),
+        });
+      }
 
-      setFormData({ key: '', value: '' });
+      setFormData({ key: '', en: '', ko: '' });
       setIsOpen(false);
-      setEditingId(null);
-      fetchTranslations();
+      setEditingKey(null);
+      fetchAllTranslations();
     } catch (error) {
       console.error('Error saving translation:', error);
       alert('Failed to save translation');
     }
   };
 
-  const handleEdit = (translation: Translation) => {
-    setFormData({ key: translation.key, value: translation.value });
-    setEditingId(translation.id);
+  const handleEdit = (pair: TranslationPair) => {
+    setFormData({ key: pair.key, en: pair.en, ko: pair.ko });
+    setEditingKey(pair.key);
     setIsOpen(true);
   };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteKey) return;
 
     try {
-      const response = await fetch(`/api/translations?id=${deleteId}`, {
-        method: 'DELETE',
-      });
+      // Find all translations with this key
+      const toDelete = translations.filter((t) => t.key === deleteKey);
 
-      if (!response.ok) throw new Error('Failed to delete');
+      // Delete each one
+      for (const t of toDelete) {
+        await fetch(`/api/translations?id=${t.id}`, {
+          method: 'DELETE',
+        });
+      }
 
-      setDeleteId(null);
-      fetchTranslations();
+      setDeleteKey(null);
+      fetchAllTranslations();
     } catch (error) {
       console.error('Error deleting translation:', error);
       alert('Failed to delete translation');
@@ -140,12 +179,12 @@ export default function TranslationsManager() {
   };
 
   const handleExport = () => {
-    const dataStr = JSON.stringify(filteredTranslations, null, 2);
+    const dataStr = JSON.stringify(pairedTranslations, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `translations-${selectedLanguage}.json`;
+    link.download = `translations-all.json`;
     link.click();
   };
 
@@ -158,18 +197,32 @@ export default function TranslationsManager() {
       const data = JSON.parse(text);
 
       for (const item of data) {
-        await fetch('/api/translations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: item.key,
-            language: selectedLanguage,
-            value: item.value,
-          }),
-        });
+        if (item.en) {
+          await fetch('/api/translations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              key: item.key,
+              language: 'en',
+              value: item.en,
+            }),
+          });
+        }
+
+        if (item.ko) {
+          await fetch('/api/translations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              key: item.key,
+              language: 'ko',
+              value: item.ko,
+            }),
+          });
+        }
       }
 
-      fetchTranslations();
+      fetchAllTranslations();
       alert('Translations imported successfully');
     } catch (error) {
       console.error('Error importing translations:', error);
@@ -183,32 +236,16 @@ export default function TranslationsManager() {
         <CardHeader>
           <CardTitle>Translation Management</CardTitle>
           <CardDescription>
-            Manage frontend translations across different languages
+            Manage English and Korean translations together
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
           <div className="flex flex-col gap-4 md:flex-row md:items-end">
             <div className="flex-1">
-              <label className="text-sm font-medium">Language</label>
-              <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex-1">
               <label className="text-sm font-medium">Search</label>
               <Input
-                placeholder="Search translations..."
+                placeholder="Search by key or translation..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -219,21 +256,21 @@ export default function TranslationsManager() {
                 <DialogTrigger asChild>
                   <Button
                     onClick={() => {
-                      setFormData({ key: '', value: '' });
-                      setEditingId(null);
+                      setFormData({ key: '', en: '', ko: '' });
+                      setEditingKey(null);
                     }}
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Add Translation
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>
-                      {editingId ? 'Edit Translation' : 'Add Translation'}
+                      {editingKey ? 'Edit Translation' : 'Add Translation'}
                     </DialogTitle>
                     <DialogDescription>
-                      Create or update a translation for {selectedLanguage}
+                      Create or update translations for both English and Korean
                     </DialogDescription>
                   </DialogHeader>
 
@@ -246,20 +283,34 @@ export default function TranslationsManager() {
                         onChange={(e) =>
                           setFormData({ ...formData, key: e.target.value })
                         }
-                        disabled={!!editingId}
+                        disabled={!!editingKey}
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Translation Value</label>
-                      <Textarea
-                        placeholder="Enter the translated text"
-                        value={formData.value}
-                        onChange={(e) =>
-                          setFormData({ ...formData, value: e.target.value })
-                        }
-                        rows={4}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium">English</label>
+                        <Textarea
+                          placeholder="Enter English text"
+                          value={formData.en}
+                          onChange={(e) =>
+                            setFormData({ ...formData, en: e.target.value })
+                          }
+                          rows={4}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">Korean (한국어)</label>
+                        <Textarea
+                          placeholder="한국어 텍스트 입력"
+                          value={formData.ko}
+                          onChange={(e) =>
+                            setFormData({ ...formData, ko: e.target.value })
+                          }
+                          rows={4}
+                        />
+                      </div>
                     </div>
 
                     <div className="flex justify-end gap-2">
@@ -270,7 +321,7 @@ export default function TranslationsManager() {
                         Cancel
                       </Button>
                       <Button onClick={handleSave}>
-                        {editingId ? 'Update' : 'Create'}
+                        {editingKey ? 'Update' : 'Create'}
                       </Button>
                     </div>
                   </div>
@@ -307,14 +358,14 @@ export default function TranslationsManager() {
           </div>
 
           {/* Translations Table */}
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Key</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead className="w-20">Actions</TableHead>
+                  <TableHead>English</TableHead>
+                  <TableHead>Korean</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -324,35 +375,35 @@ export default function TranslationsManager() {
                       Loading translations...
                     </TableCell>
                   </TableRow>
-                ) : filteredTranslations.length === 0 ? (
+                ) : pairedTranslations.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-8">
                       No translations found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTranslations.map((translation) => (
-                    <TableRow key={translation.id}>
-                      <TableCell className="font-medium">{translation.key}</TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {translation.value}
+                  pairedTranslations.map((pair) => (
+                    <TableRow key={pair.key}>
+                      <TableCell className="font-medium">{pair.key}</TableCell>
+                      <TableCell className="max-w-xs truncate text-gray-700">
+                        {pair.en || '—'}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500">
-                        {new Date(translation.updated_at).toLocaleDateString()}
+                      <TableCell className="max-w-xs truncate text-gray-700">
+                        {pair.ko || '—'}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEdit(translation)}
+                            onClick={() => handleEdit(pair)}
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setDeleteId(translation.id)}
+                            onClick={() => setDeleteKey(pair.key)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -366,12 +417,12 @@ export default function TranslationsManager() {
           </div>
 
           {/* Delete Confirmation */}
-          <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+          <AlertDialog open={!!deleteKey} onOpenChange={() => setDeleteKey(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Translation</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete this translation? This action cannot be undone.
+                  Are you sure you want to delete the translation for key "{deleteKey}"? This will remove both English and Korean versions.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="flex justify-end gap-2">
@@ -391,21 +442,23 @@ export default function TranslationsManager() {
           <CardTitle>Translation Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {LANGUAGES.map((lang) => {
-              const count = translations.filter(
-                (t) => t.language === lang.code
-              ).length;
-              return (
-                <div
-                  key={lang.code}
-                  className="p-4 border rounded-lg text-center"
-                >
-                  <div className="text-2xl font-bold">{count}</div>
-                  <div className="text-sm text-gray-600">{lang.name}</div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            <div className="p-4 border rounded-lg text-center">
+              <div className="text-2xl font-bold">{pairedTranslations.length}</div>
+              <div className="text-sm text-gray-600">Total Keys</div>
+            </div>
+            <div className="p-4 border rounded-lg text-center">
+              <div className="text-2xl font-bold">
+                {pairedTranslations.filter((p) => p.en).length}
+              </div>
+              <div className="text-sm text-gray-600">English</div>
+            </div>
+            <div className="p-4 border rounded-lg text-center">
+              <div className="text-2xl font-bold">
+                {pairedTranslations.filter((p) => p.ko).length}
+              </div>
+              <div className="text-sm text-gray-600">Korean</div>
+            </div>
           </div>
         </CardContent>
       </Card>
