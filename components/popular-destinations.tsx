@@ -52,7 +52,7 @@ export function PopularDestinations() {
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold mb-3 text-balance" key={language}>{t('home.top_destinations')}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto" key={`destinations-subtitle-${language}`}>
-            {t('home.popular_destinations_subtitle', 'Explore our most popular destinations and find your perfect getaway')}
+            {t('home.popular_destinations_subtitle')}
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -71,7 +71,7 @@ export function PopularDestinations() {
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent" />
               <div className="absolute bottom-4 left-4 right-4 text-primary-foreground">
                 <h3 className="font-semibold text-lg">{destination.name}</h3>
-                <p className="text-sm text-primary-foreground/80">{destination.hotels} hotels</p>
+                <p className="text-sm text-primary-foreground/80">{destination.hotels} {t('home.hotels_count')}</p>
               </div>
             </Link>
           ))}
