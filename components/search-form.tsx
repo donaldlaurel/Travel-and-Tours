@@ -318,7 +318,7 @@ export function SearchForm({
   initialChildrenAges = [],
 }: SearchFormProps) {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [city, setCity] = useState(initialCity)
   const [checkIn, setCheckIn] = useState<Date | undefined>(initialCheckIn)
   const [checkOut, setCheckOut] = useState<Date | undefined>(initialCheckOut)

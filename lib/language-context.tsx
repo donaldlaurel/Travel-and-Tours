@@ -46,6 +46,18 @@ const translations = {
     'home.rooms': 'Room',
     'home.search_button': 'SEARCH',
     'home.top_destinations': 'Top destinations in the Philippines',
+    'home.why_book': 'Why Book With Us',
+    'home.why_book_subtitle': 'We make booking easy and worry-free',
+    'home.best_price': 'Best Price Guarantee',
+    'home.best_price_desc': "Find a lower price? We'll match it and give you an extra 10% off.",
+    'home.secure_booking': 'Secure Booking',
+    'home.secure_booking_desc': 'Your payment and personal information are always protected.',
+    'home.free_cancellation': 'Free Cancellation',
+    'home.free_cancellation_desc': 'Plans change. That\'s why we offer free cancellation on most rooms.',
+    'home.support_24_7': '24/7 Support',
+    'home.support_24_7_desc': 'Our customer support team is available around the clock to help.',
+    'home.featured_hotels': 'Featured Hotels',
+    'home.featured_hotels_desc': 'Hand-picked hotels with exceptional ratings and service',
     
     // Admin
     'admin.rooms': 'Room Types',
@@ -104,6 +116,18 @@ const translations = {
     'home.rooms': '객실',
     'home.search_button': '검색',
     'home.top_destinations': '필리핀의 인기 여행지',
+    'home.why_book': '저희를 선택해야 하는 이유',
+    'home.why_book_subtitle': '쉽고 걱정 없는 예약을 제공합니다',
+    'home.best_price': '최저 가격 보장',
+    'home.best_price_desc': '더 저렴한 가격을 찾으셨나요? 일치시켜드리고 추가 10% 할인까지 드립니다.',
+    'home.secure_booking': '안전한 예약',
+    'home.secure_booking_desc': '귀하의 결제 정보와 개인 정보는 항상 보호됩니다.',
+    'home.free_cancellation': '무료 취소',
+    'home.free_cancellation_desc': '계획이 변경되나요? 대부분의 객실에서 무료 취소를 제공합니다.',
+    'home.support_24_7': '24/7 고객 지원',
+    'home.support_24_7_desc': '저희 고객 지원 팀은 항상 도움을 드리기 위해 준비되어 있습니다.',
+    'home.featured_hotels': '추천 호텔',
+    'home.featured_hotels_desc': '뛰어난 평점과 서비스의 엄선된 호텔',
     
     // Admin
     'admin.rooms': '객실 유형',
@@ -180,7 +204,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       if (value && typeof value === 'object' && k in value) {
         value = value[k]
       } else {
-        return key
+        // Return fallback to English if key doesn't exist in current language
+        let fallbackValue: any = translations['en']
+        for (const fk of keys) {
+          if (fallbackValue && typeof fallbackValue === 'object' && fk in fallbackValue) {
+            fallbackValue = fallbackValue[fk]
+          } else {
+            return key
+          }
+        }
+        return typeof fallbackValue === 'string' ? fallbackValue : key
       }
     }
     return typeof value === 'string' ? value : key

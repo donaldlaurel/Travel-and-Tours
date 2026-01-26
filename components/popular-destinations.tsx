@@ -44,13 +44,13 @@ const destinations = [
 ]
 
 export function PopularDestinations() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-3 text-balance">{t('home.top_destinations')}</h2>
+          <h2 className="text-3xl font-bold mb-3 text-balance" key={language}>{t('home.top_destinations')}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Explore our most popular destinations and find your perfect getaway
           </p>

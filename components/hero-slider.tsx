@@ -34,7 +34,7 @@ const banners = [
 export function HeroSlider() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % banners.length)
@@ -82,10 +82,10 @@ export function HeroSlider() {
       {/* Content */}
       <div className="relative h-full container mx-auto px-4 flex flex-col justify-center">
         <div className="max-w-3xl mx-auto text-center mb-10">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 text-balance drop-shadow-lg">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 text-balance drop-shadow-lg" key={language}>
             {t('home.title')}
           </h1>
-          <p className="text-lg md:text-xl text-white/90 drop-shadow-md">
+          <p className="text-lg md:text-xl text-white/90 drop-shadow-md" key={`subtitle-${language}`}>
             {t('home.subtitle')}
           </p>
         </div>

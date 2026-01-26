@@ -32,11 +32,6 @@ export function LanguageSelector() {
   const handleLanguageChange = (newLang: Language) => {
     console.log("[v0] Changing language to:", newLang)
     setLanguage(newLang)
-    
-    // Refresh the page to reload all translations
-    setTimeout(() => {
-      router.refresh()
-    }, 100)
   }
 
   return (
