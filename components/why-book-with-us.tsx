@@ -24,6 +24,11 @@ const featureKeys = [
     titleKey: 'home.support_24_7',
     descKey: 'home.support_24_7_desc',
   },
+  {
+    icon: BadgePercent,
+    titleKey: 'home.exclusive_deals',
+    descKey: 'home.exclusive_deals_desc',
+  },
 ]
 
 export function WhyBookWithUs() {
