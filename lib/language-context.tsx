@@ -57,6 +57,8 @@ const translations = {
     'home.free_cancellation_desc': 'Plans change. That\'s why we offer free cancellation on most rooms.',
     'home.support_24_7': '24/7 Support',
     'home.support_24_7_desc': 'Our customer support team is available around the clock to help.',
+    'home.exclusive_deals': 'Exclusive Deals',
+    'home.exclusive_deals_desc': 'Get access to members-only offers and discounts unavailable elsewhere.',
     'home.featured_hotels': 'Featured Hotels',
     'home.featured_hotels_desc': 'Hand-picked hotels with exceptional ratings and service',
     
@@ -128,6 +130,8 @@ const translations = {
     'home.free_cancellation_desc': '계획이 변경되나요? 대부분의 객실에서 무료 취소를 제공합니다.',
     'home.support_24_7': '24/7 고객 지원',
     'home.support_24_7_desc': '저희 고객 지원 팀은 항상 도움을 드리기 위해 준비되어 있습니다.',
+    'home.exclusive_deals': '특별 할인',
+    'home.exclusive_deals_desc': '다른 곳에서는 찾을 수 없는 회원 전용 오퍼와 할인을 받으세요.',
     'home.featured_hotels': '추천 호텔',
     'home.featured_hotels_desc': '뛰어난 평점과 서비스의 엄선된 호텔',
     
