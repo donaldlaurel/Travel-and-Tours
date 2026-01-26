@@ -244,19 +244,30 @@ export function useLanguage() {
 // Fetch translations from the database
 async function fetchTranslations(): Promise<Record<Language, Record<string, string>> | null> {
   try {
-    const response = await fetch('/api/translations', {
+    console.log('[v0] Fetching translations for English...')
+    const responseEn = await fetch('/api/translations?language=en', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     })
 
-    if (!response.ok) {
+    console.log('[v0] Fetching translations for Korean...')
+    const responseKo = await fetch('/api/translations?language=ko', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!responseEn.ok || !responseKo.ok) {
       console.log('[v0] Failed to fetch translations from API, using hardcoded fallback')
+      console.log('[v0] EN response status:', responseEn.status, 'KO response status:', responseKo.status)
       return null
     }
 
-    const data = await response.json()
+    const dataEn = await responseEn.json()
+    const dataKo = await responseKo.json()
     
     // Transform API response into the format we need
     const result: Record<Language, Record<string, string>> = {
@@ -264,12 +275,18 @@ async function fetchTranslations(): Promise<Record<Language, Record<string, stri
       ko: {},
     }
 
-    if (Array.isArray(data)) {
-      data.forEach((item: any) => {
-        if (item.language === 'en' || item.language === 'ko') {
-          result[item.language as Language][item.key] = item.value
-        }
+    if (Array.isArray(dataEn)) {
+      dataEn.forEach((item: any) => {
+        result['en'][item.key] = item.value
       })
+      console.log('[v0] Loaded', dataEn.length, 'English translations from database')
+    }
+
+    if (Array.isArray(dataKo)) {
+      dataKo.forEach((item: any) => {
+        result['ko'][item.key] = item.value
+      })
+      console.log('[v0] Loaded', dataKo.length, 'Korean translations from database')
     }
 
     console.log('[v0] Successfully fetched dynamic translations from database')
