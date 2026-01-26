@@ -9,7 +9,7 @@ import { LanguageSelector } from "@/components/language-selector"
 import { useLanguage } from "@/lib/language-context"
 
 export function Header() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card">
@@ -29,6 +29,7 @@ export function Header() {
           <Link
             href="/hotels"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            key={language}
           >
             {t('home.hotels')}
           </Link>
