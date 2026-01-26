@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Hotel, BedDouble, CalendarCheck, CalendarOff, Users, Star, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, Hotel, BedDouble, CalendarCheck, CalendarOff, Users, Star, Settings, LogOut, Globe } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
@@ -16,6 +16,7 @@ const navigation = [
   { name: "Bookings", href: "/admin/bookings", icon: CalendarCheck },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Reviews", href: "/admin/reviews", icon: Star },
+  { name: "Translations", href: "/admin/translations", icon: Globe },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
