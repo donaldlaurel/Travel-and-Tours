@@ -29,7 +29,6 @@ export function Header() {
           <Link
             href="/hotels"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            key={language}
           >
             {t('home.hotels')}
           </Link>

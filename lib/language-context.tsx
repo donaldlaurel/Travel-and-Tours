@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 export type Language = 'en' | 'ko'
 
@@ -187,12 +187,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       })
   }, [])
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
+    console.log('[v0] Setting language to:', lang)
     setLanguageState(lang)
     localStorage.setItem('language', lang)
-  }
+  }, [])
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     // First try dynamic translations from database
     if (dynamicTranslations[language] && dynamicTranslations[language][key]) {
       return dynamicTranslations[language][key]
@@ -218,10 +219,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       }
     }
     return typeof value === 'string' ? value : key
-  }
+  }, [language, dynamicTranslations])
+
+  const contextValue = useMemo(
+    () => ({ language, setLanguage, t, isLoading }),
+    [language, setLanguage, t, isLoading]
+  )
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, isLoading }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   )
@@ -258,8 +264,8 @@ async function fetchTranslations(): Promise<Record<Language, Record<string, stri
       ko: {},
     }
 
-    if (data.translations && Array.isArray(data.translations)) {
-      data.translations.forEach((item: any) => {
+    if (Array.isArray(data)) {
+      data.forEach((item: any) => {
         if (item.language === 'en' || item.language === 'ko') {
           result[item.language as Language][item.key] = item.value
         }
