@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/language-context"
 
 interface SearchFormProps {
   variant?: "hero" | "compact"
@@ -317,6 +318,7 @@ export function SearchForm({
   initialChildrenAges = [],
 }: SearchFormProps) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [city, setCity] = useState(initialCity)
   const [checkIn, setCheckIn] = useState<Date | undefined>(initialCheckIn)
   const [checkOut, setCheckOut] = useState<Date | undefined>(initialCheckOut)
@@ -377,11 +379,11 @@ export function SearchForm({
       <div className={cn("flex flex-col gap-4", isHero ? "lg:flex-row lg:items-end" : "md:flex-row md:items-end")}>
         {/* Destination */}
         <div className={cn("flex-1", isHero && "lg:min-w-[200px]")}>
-          <label className="text-sm font-medium mb-2 block text-muted-foreground">Destination</label>
+          <label className="text-sm font-medium mb-2 block text-muted-foreground">{t('home.search_location')}</label>
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Where are you going?"
+              placeholder={t('home.search_location')}
               value={city}
               onChange={(e) => setCity(e.target.value)}
               className="pl-10 h-12"
@@ -390,7 +392,7 @@ export function SearchForm({
         </div>
 
         <div className={cn("flex-1", isHero && "lg:min-w-[320px]")}>
-          <label className="text-sm font-medium mb-2 block text-muted-foreground">Check-in / Check-out</label>
+          <label className="text-sm font-medium mb-2 block text-muted-foreground">{t('home.check_in')} / {t('home.check_out')}</label>
           <Popover>
             <PopoverTrigger asChild>
               <div className="flex">

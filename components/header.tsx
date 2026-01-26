@@ -1,11 +1,16 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { HeaderAuth } from "@/components/header-auth"
 import { LanguageSelector } from "@/components/language-selector"
+import { useLanguage } from "@/lib/language-context"
 
 export function Header() {
+  const { t } = useLanguage()
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -25,7 +30,7 @@ export function Header() {
             href="/hotels"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            Hotels
+            {t('home.hotels')}
           </Link>
         </nav>
 

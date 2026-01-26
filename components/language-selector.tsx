@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -9,8 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Globe } from "lucide-react"
-
-type Language = "en" | "ko"
+import { useLanguage, type Language } from "@/lib/language-context"
 
 interface LanguageOption {
   code: Language
@@ -24,16 +22,9 @@ const languages: LanguageOption[] = [
 ]
 
 export function LanguageSelector() {
-  const [currentLanguage, setCurrentLanguage] = useState<Language>("en")
+  const { language, setLanguage } = useLanguage()
 
-  const handleLanguageChange = (language: Language) => {
-    setCurrentLanguage(language)
-    // Store in localStorage for persistence
-    localStorage.setItem("language", language)
-    // You can also trigger language switching here (e.g., i18n integration)
-  }
-
-  const currentLang = languages.find((lang) => lang.code === currentLanguage)
+  const currentLang = languages.find((lang) => lang.code === language)
 
   return (
     <DropdownMenu>
@@ -48,12 +39,12 @@ export function LanguageSelector() {
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => handleLanguageChange(lang.code)}
+            onClick={() => setLanguage(lang.code)}
             className="flex items-center gap-2 cursor-pointer"
           >
             <span>{lang.flag}</span>
             <span>{lang.name}</span>
-            {currentLanguage === lang.code && (
+            {language === lang.code && (
               <span className="ml-auto">✓</span>
             )}
           </DropdownMenuItem>
