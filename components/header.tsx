@@ -3,6 +3,7 @@ import Image from "next/image"
 import { Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { HeaderAuth } from "@/components/header-auth"
+import { LanguageSelector } from "@/components/language-selector"
 
 export function Header() {
   return (
@@ -29,6 +30,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <LanguageSelector />
           <Button variant="ghost" size="icon" asChild className="hidden sm:flex">
             <Link href="/favorites">
               <Heart className="h-5 w-5" />
