@@ -180,7 +180,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       if (value && typeof value === 'object' && k in value) {
         value = value[k]
       } else {
-        return key
+        // Return fallback to English if key doesn't exist in current language
+        let fallbackValue: any = translations['en']
+        for (const fk of keys) {
+          if (fallbackValue && typeof fallbackValue === 'object' && fk in fallbackValue) {
+            fallbackValue = fallbackValue[fk]
+          } else {
+            return key
+          }
+        }
+        return typeof fallbackValue === 'string' ? fallbackValue : key
       }
     }
     return typeof value === 'string' ? value : key
