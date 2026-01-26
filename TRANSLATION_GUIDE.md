@@ -17,7 +17,7 @@ The Translation Management System allows admins to manage all frontend text cont
 
 The `translations` table stores all translations with the following structure:
 
-```sql
+\`\`\`sql
 CREATE TABLE translations (
   id UUID PRIMARY KEY,
   key VARCHAR(255) NOT NULL,           -- Translation key (e.g., "header.title")
@@ -27,7 +27,7 @@ CREATE TABLE translations (
   updated_at TIMESTAMP,
   UNIQUE(key, language)
 );
-```
+\`\`\`
 
 ## Admin Panel Usage
 
@@ -77,7 +77,7 @@ CREATE TABLE translations (
 3. The translations will be imported or updated
 
 **JSON Format**:
-```json
+\`\`\`json
 [
   {
     "id": "uuid",
@@ -96,13 +96,13 @@ CREATE TABLE translations (
     "updated_at": "2024-01-01T00:00:00Z"
   }
 ]
-```
+\`\`\`
 
 ## Frontend Usage
 
 ### Using the useTranslations Hook
 
-```tsx
+\`\`\`tsx
 'use client';
 
 import { useTranslations } from '@/hooks/use-translations';
@@ -121,13 +121,13 @@ export function MyComponent() {
     </div>
   );
 }
-```
+\`\`\`
 
 ### Direct API Access
 
 For server-side components or API routes:
 
-```tsx
+\`\`\`tsx
 import { createServerClient } from '@/lib/supabase/server';
 
 async function getTranslations(language: string) {
@@ -140,7 +140,7 @@ async function getTranslations(language: string) {
   if (error) throw error;
   return data;
 }
-```
+\`\`\`
 
 ## API Routes
 
@@ -153,13 +153,13 @@ Fetch translations for a specific language or a specific key.
 - `key` (optional): Specific translation key to fetch
 
 **Example**:
-```
+\`\`\`
 GET /api/translations?language=en
 GET /api/translations?language=ko&key=header.title
-```
+\`\`\`
 
 **Response**:
-```json
+\`\`\`json
 [
   {
     "id": "uuid",
@@ -170,20 +170,20 @@ GET /api/translations?language=ko&key=header.title
     "updated_at": "2024-01-01T00:00:00Z"
   }
 ]
-```
+\`\`\`
 
 ### POST /api/translations
 
 Create or update a translation.
 
 **Request Body**:
-```json
+\`\`\`json
 {
   "key": "header.title",
   "language": "en",
   "value": "Welcome to Our Hotel"
 }
-```
+\`\`\`
 
 **Response**: Returns the created or updated translation object.
 
@@ -195,9 +195,9 @@ Delete a translation by ID.
 - `id` (required): Translation ID
 
 **Example**:
-```
+\`\`\`
 DELETE /api/translations?id=uuid
-```
+\`\`\`
 
 ## Migration Process
 
@@ -254,10 +254,10 @@ To add a new language:
 - Value: "Welcome to our hotel booking platform"
 
 **Frontend Usage**:
-```tsx
+\`\`\`tsx
 const { t } = useTranslations('en');
 <h1>{t('home.welcome')}</h1>
-```
+\`\`\`
 
 ### Example 2: Dynamic Error Messages
 
@@ -266,12 +266,12 @@ const { t } = useTranslations('en');
 - Value: "This email is already registered"
 
 **Frontend Usage**:
-```tsx
+\`\`\`tsx
 const { t } = useTranslations(language);
 if (userExists) {
   showError(t('errors.email_exists'));
 }
-```
+\`\`\`
 
 ### Example 3: Bulk Import
 
