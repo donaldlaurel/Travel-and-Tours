@@ -160,7 +160,6 @@ const translations = {
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en')
-  const [mounted, setMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [dynamicTranslations, setDynamicTranslations] = useState<Record<Language, Record<string, string>>>({
     en: {},
@@ -169,6 +168,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   // Load saved language and fetch dynamic translations
   useEffect(() => {
+    // Load language from localStorage
     const saved = localStorage.getItem('language') as Language | null
     if (saved && (saved === 'en' || saved === 'ko')) {
       setLanguageState(saved)
@@ -179,10 +179,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (data) {
           setDynamicTranslations(data)
+          console.log('[v0] Dynamic translations loaded successfully')
         }
       })
       .finally(() => {
-        setMounted(true)
         setIsLoading(false)
       })
   }, [])
@@ -190,7 +190,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem('language', lang)
-    console.log('[v0] Language changed to:', lang)
   }
 
   const t = (key: string): string => {
@@ -247,7 +246,7 @@ async function fetchTranslations(): Promise<Record<Language, Record<string, stri
     })
 
     if (!response.ok) {
-      console.log('[v0] Failed to fetch translations, using fallback')
+      console.log('[v0] Failed to fetch translations from API, using hardcoded fallback')
       return null
     }
 
@@ -267,7 +266,7 @@ async function fetchTranslations(): Promise<Record<Language, Record<string, stri
       })
     }
 
-    console.log('[v0] Loaded dynamic translations from database')
+    console.log('[v0] Successfully fetched dynamic translations from database')
     return result
   } catch (error) {
     console.error('[v0] Error fetching translations:', error)
