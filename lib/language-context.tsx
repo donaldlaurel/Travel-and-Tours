@@ -47,6 +47,11 @@ const translations = {
     'home.search_button': 'SEARCH',
     'home.top_destinations': 'Top destinations in the Philippines',
     'home.popular_destinations_subtitle': 'Explore our most popular destinations and find your perfect getaway',
+    'home.featured_hotels': 'Featured Hotels',
+    'home.featured_hotels_subtitle': 'Discover our handpicked selection of premium hotels',
+    'home.featured_hotels_error': 'Error loading featured hotels. Please try again later.',
+    'home.featured_hotels_no_data': 'No hotels available yet. Please run the database scripts to add sample data.',
+    'home.hotels_count': 'hotels',
     'home.why_book': 'Why Book With Us',
     'home.why_book_subtitle': 'We make booking easy and worry-free',
     'home.best_price': 'Best Price Guarantee',
@@ -59,8 +64,6 @@ const translations = {
     'home.support_24_7_desc': 'Our customer support team is available around the clock to help.',
     'home.exclusive_deals': 'Exclusive Deals',
     'home.exclusive_deals_desc': 'Get access to members-only offers and discounts unavailable elsewhere.',
-    'home.featured_hotels': 'Featured Hotels',
-    'home.featured_hotels_desc': 'Hand-picked hotels with exceptional ratings and service',
     
     // Admin
     'admin.rooms': 'Room Types',
@@ -120,6 +123,11 @@ const translations = {
     'home.search_button': '검색',
     'home.top_destinations': '필리핀의 인기 여행지',
     'home.popular_destinations_subtitle': '가장 인기 있는 목적지를 탐색하고 완벽한 휴양지를 찾으세요',
+    'home.featured_hotels': '추천 호텔',
+    'home.featured_hotels_subtitle': '엄선된 프리미엄 호텔을 발견하세요',
+    'home.featured_hotels_error': '호텔 로드 중 오류가 발생했습니다. 나중에 다시 시도하세요.',
+    'home.featured_hotels_no_data': '아직 사용 가능한 호텔이 없습니다. 샘플 데이터를 추가하려면 데이터베이스 스크립트를 실행하세요.',
+    'home.hotels_count': '개의 호텔',
     'home.why_book': '저희를 선택해야 하는 이유',
     'home.why_book_subtitle': '쉽고 걱정 없는 예약을 제공합니다',
     'home.best_price': '최저 가격 보장',
@@ -132,8 +140,6 @@ const translations = {
     'home.support_24_7_desc': '저희 고객 지원 팀은 항상 도움을 드리기 위해 준비되어 있습니다.',
     'home.exclusive_deals': '특별 할인',
     'home.exclusive_deals_desc': '다른 곳에서는 찾을 수 없는 회원 전용 오퍼와 할인을 받으세요.',
-    'home.featured_hotels': '추천 호텔',
-    'home.featured_hotels_desc': '뛰어난 평점과 서비스의 엄선된 호텔',
     
     // Admin
     'admin.rooms': '객실 유형',

@@ -1,10 +1,11 @@
 import { HotelCard } from "@/components/hotel-card"
+import { FeaturedHotelsHeader } from "@/components/featured-hotels-header"
 import type { Hotel } from "@/lib/types"
 import { createClient } from "@/lib/supabase/server"
 import { getHotelsLowestRatesForRange } from "@/lib/availability-server"
 import { format, addDays } from "date-fns"
 
-export async function FeaturedHotels() {
+async function FeaturedHotelsContent() {
   try {
     const supabase = await createClient()
     
@@ -30,57 +31,39 @@ export async function FeaturedHotels() {
       lowest_price: priceMap[hotel.id] ?? null,
     }))
 
-    if (!hotels || hotels.length === 0) {
-      return (
-        <section className="py-16 bg-muted/50">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold mb-3 text-balance">Featured Hotels</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Discover our handpicked selection of premium hotels
-              </p>
-            </div>
-            <div className="text-center py-12 text-muted-foreground">
-              <p>No hotels available yet. Please run the database scripts to add sample data.</p>
-            </div>
-          </div>
-        </section>
-      )
-    }
-
-    return (
-      <section className="py-16 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-3 text-balance">Featured Hotels</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Discover our handpicked selection of premium hotels
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hotels.map((hotel: Hotel & { lowest_price: number | null }) => (
-              <HotelCard key={hotel.id} hotel={hotel} />
-            ))}
-          </div>
-        </div>
-      </section>
-    )
+    return { hotels, error: null }
   } catch (error) {
     console.error("Error fetching featured hotels:", error)
+    return { hotels: null, error: true }
+  }
+}
+
+export async function FeaturedHotels() {
+  const { hotels, error } = await FeaturedHotelsContent()
+
+  if (!hotels || hotels.length === 0) {
     return (
       <section className="py-16 bg-muted/50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-3 text-balance">Featured Hotels</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Discover our handpicked selection of premium hotels
-            </p>
-          </div>
+          <FeaturedHotelsHeader />
           <div className="text-center py-12 text-muted-foreground">
-            <p>Error loading featured hotels. Please try again later.</p>
+            <p>{error ? "Error loading featured hotels. Please try again later." : "No hotels available yet. Please run the database scripts to add sample data."}</p>
           </div>
         </div>
       </section>
     )
   }
+
+  return (
+    <section className="py-16 bg-muted/50">
+      <div className="container mx-auto px-4">
+        <FeaturedHotelsHeader />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {hotels.map((hotel: Hotel & { lowest_price: number | null }) => (
+            <HotelCard key={hotel.id} hotel={hotel} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
 }
