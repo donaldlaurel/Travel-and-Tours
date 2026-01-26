@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('translations')
-      .select('*')
+      .select('key, value, language')
       .eq('language', language);
 
     if (key) {
@@ -19,11 +19,16 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('[v0] Error fetching translations:', error);
+      throw error;
+    }
 
-    return NextResponse.json(data);
+    console.log('[v0] Translations fetched successfully for language:', language, 'Count:', data?.length || 0);
+    
+    return NextResponse.json(data || []);
   } catch (error) {
-    console.error('Error fetching translations:', error);
+    console.error('[v0] Error fetching translations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch translations' },
       { status: 500 }
