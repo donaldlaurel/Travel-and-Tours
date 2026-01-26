@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('translations')
-      .select('key, value, language')
+      .select('id, key, value, language, created_at, updated_at')
       .eq('language', language);
 
     if (key) {

@@ -94,14 +94,21 @@ export default function TranslationsManager() {
       const enResponse = await fetch('/api/translations?language=en');
       const koResponse = await fetch('/api/translations?language=ko');
 
-      if (!enResponse.ok || !koResponse.ok) throw new Error('Failed to fetch');
+      if (!enResponse.ok || !koResponse.ok) {
+        console.error('[v0] Failed to fetch translations:', enResponse.status, koResponse.status);
+        throw new Error('Failed to fetch');
+      }
 
       const enData = await enResponse.json();
       const koData = await koResponse.json();
 
+      console.log('[v0] Fetched EN translations:', enData.length);
+      console.log('[v0] Fetched KO translations:', koData.length);
+
       setTranslations([...enData, ...koData]);
     } catch (error) {
-      console.error('Error fetching translations:', error);
+      console.error('[v0] Error fetching translations:', error);
+      alert('Failed to load translations. Please try again.');
     } finally {
       setIsLoading(false);
     }
