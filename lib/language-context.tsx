@@ -8,6 +8,7 @@ interface LanguageContextType {
   language: Language
   setLanguage: (lang: Language) => void
   t: (key: string) => string
+  isLoading: boolean
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
@@ -134,21 +135,45 @@ const translations = {
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en')
   const [mounted, setMounted] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [dynamicTranslations, setDynamicTranslations] = useState<Record<Language, Record<string, string>>>({
+    en: {},
+    ko: {},
+  })
 
+  // Load saved language and fetch dynamic translations
   useEffect(() => {
     const saved = localStorage.getItem('language') as Language | null
     if (saved && (saved === 'en' || saved === 'ko')) {
       setLanguageState(saved)
     }
-    setMounted(true)
+    
+    // Fetch dynamic translations from database
+    fetchTranslations()
+      .then((data) => {
+        if (data) {
+          setDynamicTranslations(data)
+        }
+      })
+      .finally(() => {
+        setMounted(true)
+        setIsLoading(false)
+      })
   }, [])
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem('language', lang)
+    console.log('[v0] Language changed to:', lang)
   }
 
   const t = (key: string): string => {
+    // First try dynamic translations from database
+    if (dynamicTranslations[language] && dynamicTranslations[language][key]) {
+      return dynamicTranslations[language][key]
+    }
+
+    // Fall back to hardcoded translations
     const keys = key.split('.')
     let value: any = translations[language]
     for (const k of keys) {
@@ -161,8 +186,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return typeof value === 'string' ? value : key
   }
 
+  if (!mounted) {
+    return <>{children}</>
+  }
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, isLoading }}>
       {children}
     </LanguageContext.Provider>
   )
@@ -174,4 +203,43 @@ export function useLanguage() {
     throw new Error('useLanguage must be used within LanguageProvider')
   }
   return context
+}
+
+// Fetch translations from the database
+async function fetchTranslations(): Promise<Record<Language, Record<string, string>> | null> {
+  try {
+    const response = await fetch('/api/translations', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      console.log('[v0] Failed to fetch translations, using fallback')
+      return null
+    }
+
+    const data = await response.json()
+    
+    // Transform API response into the format we need
+    const result: Record<Language, Record<string, string>> = {
+      en: {},
+      ko: {},
+    }
+
+    if (data.translations && Array.isArray(data.translations)) {
+      data.translations.forEach((item: any) => {
+        if (item.language === 'en' || item.language === 'ko') {
+          result[item.language as Language][item.key] = item.value
+        }
+      })
+    }
+
+    console.log('[v0] Loaded dynamic translations from database')
+    return result
+  } catch (error) {
+    console.error('[v0] Error fetching translations:', error)
+    return null
+  }
 }

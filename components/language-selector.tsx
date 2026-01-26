@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Globe } from "lucide-react"
 import { useLanguage, type Language } from "@/lib/language-context"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 interface LanguageOption {
   code: Language
@@ -23,8 +25,19 @@ const languages: LanguageOption[] = [
 
 export function LanguageSelector() {
   const { language, setLanguage } = useLanguage()
+  const router = useRouter()
 
   const currentLang = languages.find((lang) => lang.code === language)
+
+  const handleLanguageChange = (newLang: Language) => {
+    console.log("[v0] Changing language to:", newLang)
+    setLanguage(newLang)
+    
+    // Refresh the page to reload all translations
+    setTimeout(() => {
+      router.refresh()
+    }, 100)
+  }
 
   return (
     <DropdownMenu>
@@ -39,7 +52,7 @@ export function LanguageSelector() {
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => setLanguage(lang.code)}
+            onClick={() => handleLanguageChange(lang.code)}
             className="flex items-center gap-2 cursor-pointer"
           >
             <span>{lang.flag}</span>
