@@ -379,7 +379,7 @@ export function SearchForm({
       <div className={cn("flex flex-col gap-4", isHero ? "lg:flex-row lg:items-end" : "md:flex-row md:items-end")}>
         {/* Destination */}
         <div className={cn("flex-1", isHero && "lg:min-w-[200px]")}>
-          <label className="text-sm font-medium mb-2 block text-muted-foreground">{t('home.search_location')}</label>
+          <label className="text-sm font-medium mb-2 block text-muted-foreground">Search location</label>
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
