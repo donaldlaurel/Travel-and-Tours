@@ -26,12 +26,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased min-h-screen flex flex-col">
+        <Analytics />
         <LanguageProvider>
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
         </LanguageProvider>
-        <Analytics />
       </body>
     </html>
   )
