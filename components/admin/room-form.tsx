@@ -82,6 +82,7 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
     extra_person_breakfast: room?.extra_person_breakfast || false,
   })
   const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [initialGalleryImages, setInitialGalleryImages] = useState<string[]>([])
   const [surchargeRefreshTrigger, setSurchargeRefreshTrigger] = useState(0)
 
   // Load existing gallery images when editing a room
@@ -96,7 +97,9 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
           .order("display_order", { ascending: true })
 
         if (!error && data) {
-          setGalleryImages(data.map(img => img.image_url))
+          const urls = data.map(img => img.image_url)
+          setGalleryImages(urls)
+          setInitialGalleryImages(urls)
         }
       }
       loadGalleryImages()
@@ -148,35 +151,33 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
         return
       }
 
-      // Delete old gallery images and insert new ones
-      if (galleryImages.length > 0 || galleryImages.length !== (room as any).galleryImages?.length) {
-        // First delete all existing images for this room
-        const { error: deleteError } = await supabase
+      // Always delete and re-insert gallery images (handle both new and updated images)
+      // First delete all existing images for this room
+      const { error: deleteError } = await supabase
+        .from("room_images")
+        .delete()
+        .eq("room_type_id", room.id)
+
+      if (deleteError) {
+        console.log("[v0] Error deleting old images:", deleteError.message)
+      }
+
+      // Then insert the new images
+      if (galleryImages.length > 0) {
+        const imagesToInsert = galleryImages.map((image_url, index) => ({
+          room_type_id: room.id,
+          image_url,
+          display_order: index,
+        }))
+
+        const { error: imageError } = await supabase
           .from("room_images")
-          .delete()
-          .eq("room_type_id", room.id)
+          .insert(imagesToInsert)
 
-        if (deleteError) {
-          console.log("[v0] Error deleting old images:", deleteError.message)
-        }
-
-        // Then insert the new images
-        if (galleryImages.length > 0) {
-          const imagesToInsert = galleryImages.map((image_url, index) => ({
-            room_type_id: room.id,
-            image_url,
-            display_order: index,
-          }))
-
-          const { error: imageError } = await supabase
-            .from("room_images")
-            .insert(imagesToInsert)
-
-          if (imageError) {
-            setError(`Failed to save gallery images: ${imageError.message}`)
-            setLoading(false)
-            return
-          }
+        if (imageError) {
+          setError(`Failed to save gallery images: ${imageError.message}`)
+          setLoading(false)
+          return
         }
       }
     } else {
