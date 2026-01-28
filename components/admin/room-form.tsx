@@ -13,9 +13,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ImageUpload } from "@/components/admin/image-upload"
 import { RoomRateCalendar } from "@/components/admin/room-rate-calendar"
 import { SurchargesManager } from "@/components/admin/surcharges-manager"
+import { AmenitiesManager } from "@/components/admin/amenities-manager"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-const ROOM_AMENITIES = [
+const DEFAULT_ROOM_AMENITIES = [
   "Air Conditioning",
   "WiFi",
   "TV",
@@ -142,14 +143,6 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
 
     router.push("/admin/rooms")
     router.refresh()
-  }
-
-  const handleAmenityChange = (amenity: string, checked: boolean) => {
-    if (checked) {
-      setFormData({ ...formData, amenities: [...formData.amenities, amenity] })
-    } else {
-      setFormData({ ...formData, amenities: formData.amenities.filter((a) => a !== amenity) })
-    }
   }
 
   return (
@@ -358,23 +351,12 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
         aspectRatio="video"
       />
 
-      <div className="space-y-2">
-        <Label>Room Amenities</Label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {ROOM_AMENITIES.map((amenity) => (
-            <div key={amenity} className="flex items-center space-x-2">
-              <Checkbox
-                id={amenity}
-                checked={formData.amenities.includes(amenity)}
-                onCheckedChange={(checked) => handleAmenityChange(amenity, checked as boolean)}
-              />
-              <label htmlFor={amenity} className="text-sm cursor-pointer">
-                {amenity}
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AmenitiesManager
+        amenities={formData.amenities}
+        defaultAmenities={DEFAULT_ROOM_AMENITIES}
+        onAmenitiesChange={(amenities) => setFormData({ ...formData, amenities })}
+        type="room"
+      />
 
       <div className="flex gap-4">
         <Button type="submit" disabled={loading}>

@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import type { Hotel } from "@/lib/types"
 import { ImageUpload, MultiImageUpload } from "@/components/admin/image-upload"
+import { AmenitiesManager } from "@/components/admin/amenities-manager"
 
-const AMENITIES = [
+const DEFAULT_AMENITIES = [
   "WiFi",
   "Pool",
   "Spa",
@@ -133,14 +133,6 @@ export function HotelForm({ hotel, existingGalleryImages = [] }: HotelFormProps)
     router.refresh()
   }
 
-  const handleAmenityChange = (amenity: string, checked: boolean) => {
-    if (checked) {
-      setFormData({ ...formData, amenities: [...formData.amenities, amenity] })
-    } else {
-      setFormData({ ...formData, amenities: formData.amenities.filter((a) => a !== amenity) })
-    }
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
@@ -255,23 +247,12 @@ export function HotelForm({ hotel, existingGalleryImages = [] }: HotelFormProps)
         maxImages={10}
       />
 
-      <div className="space-y-2">
-        <Label>Amenities</Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {AMENITIES.map((amenity) => (
-            <div key={amenity} className="flex items-center space-x-2">
-              <Checkbox
-                id={amenity}
-                checked={formData.amenities.includes(amenity)}
-                onCheckedChange={(checked) => handleAmenityChange(amenity, checked as boolean)}
-              />
-              <label htmlFor={amenity} className="text-sm cursor-pointer">
-                {amenity}
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AmenitiesManager
+        amenities={formData.amenities}
+        defaultAmenities={DEFAULT_AMENITIES}
+        onAmenitiesChange={(amenities) => setFormData({ ...formData, amenities })}
+        type="hotel"
+      />
 
       <div className="flex gap-4">
         <Button type="submit" disabled={loading}>
