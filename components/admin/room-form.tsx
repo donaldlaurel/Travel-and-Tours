@@ -1,7 +1,5 @@
-"use client"
-
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -86,6 +84,25 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [surchargeRefreshTrigger, setSurchargeRefreshTrigger] = useState(0)
 
+  // Load existing gallery images when editing a room
+  useEffect(() => {
+    if (room?.id) {
+      const loadGalleryImages = async () => {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from("room_images")
+          .select("image_url")
+          .eq("room_type_id", room.id)
+          .order("display_order", { ascending: true })
+
+        if (!error && data) {
+          setGalleryImages(data.map(img => img.image_url))
+        }
+      }
+      loadGalleryImages()
+    }
+  }, [room?.id])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -131,21 +148,35 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
         return
       }
 
-      // Save gallery images
-      if (galleryImages.length > 0) {
-        const imagesToInsert = galleryImages.map((image_url) => ({
-          room_type_id: room.id,
-          image_url,
-        }))
-
-        const { error: imageError } = await supabase
+      // Delete old gallery images and insert new ones
+      if (galleryImages.length > 0 || galleryImages.length !== (room as any).galleryImages?.length) {
+        // First delete all existing images for this room
+        const { error: deleteError } = await supabase
           .from("room_images")
-          .insert(imagesToInsert)
+          .delete()
+          .eq("room_type_id", room.id)
 
-        if (imageError) {
-          setError(imageError.message)
-          setLoading(false)
-          return
+        if (deleteError) {
+          console.log("[v0] Error deleting old images:", deleteError.message)
+        }
+
+        // Then insert the new images
+        if (galleryImages.length > 0) {
+          const imagesToInsert = galleryImages.map((image_url, index) => ({
+            room_type_id: room.id,
+            image_url,
+            display_order: index,
+          }))
+
+          const { error: imageError } = await supabase
+            .from("room_images")
+            .insert(imagesToInsert)
+
+          if (imageError) {
+            setError(`Failed to save gallery images: ${imageError.message}`)
+            setLoading(false)
+            return
+          }
         }
       }
     } else {
@@ -163,9 +194,10 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
       // Save gallery images for new room
       if (data && data.length > 0 && galleryImages.length > 0) {
         const roomId = data[0].id
-        const imagesToInsert = galleryImages.map((image_url) => ({
+        const imagesToInsert = galleryImages.map((image_url, index) => ({
           room_type_id: roomId,
           image_url,
+          display_order: index,
         }))
 
         const { error: imageError } = await supabase
@@ -173,7 +205,7 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
           .insert(imagesToInsert)
 
         if (imageError) {
-          setError(imageError.message)
+          setError(`Failed to save gallery images: ${imageError.message}`)
           setLoading(false)
           return
         }
