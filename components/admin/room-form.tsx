@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ImageUpload } from "@/components/admin/image-upload"
+import { ImageUpload, MultiImageUpload } from "@/components/admin/image-upload"
 import { RoomRateCalendar } from "@/components/admin/room-rate-calendar"
 import { SurchargesManager } from "@/components/admin/surcharges-manager"
 import { AmenitiesManager } from "@/components/admin/amenities-manager"
@@ -83,6 +83,7 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
     extra_person_price: room?.extra_person_price?.toString() || "",
     extra_person_breakfast: room?.extra_person_breakfast || false,
   })
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [surchargeRefreshTrigger, setSurchargeRefreshTrigger] = useState(0)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,15 +130,53 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
         setLoading(false)
         return
       }
+
+      // Save gallery images
+      if (galleryImages.length > 0) {
+        const imagesToInsert = galleryImages.map((image_url) => ({
+          room_type_id: room.id,
+          image_url,
+        }))
+
+        const { error: imageError } = await supabase
+          .from("room_images")
+          .insert(imagesToInsert)
+
+        if (imageError) {
+          setError(imageError.message)
+          setLoading(false)
+          return
+        }
+      }
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("room_types")
         .insert(roomData)
+        .select()
 
       if (error) {
         setError(error.message)
         setLoading(false)
         return
+      }
+
+      // Save gallery images for new room
+      if (data && data.length > 0 && galleryImages.length > 0) {
+        const roomId = data[0].id
+        const imagesToInsert = galleryImages.map((image_url) => ({
+          room_type_id: roomId,
+          image_url,
+        }))
+
+        const { error: imageError } = await supabase
+          .from("room_images")
+          .insert(imagesToInsert)
+
+        if (imageError) {
+          setError(imageError.message)
+          setLoading(false)
+          return
+        }
       }
     }
 
@@ -349,6 +388,14 @@ export function RoomForm({ room, hotels, defaultHotelId }: RoomFormProps) {
         onChange={(url) => setFormData({ ...formData, image_url: url })}
         folder="rooms"
         aspectRatio="video"
+      />
+
+      <MultiImageUpload
+        label="Gallery Images"
+        values={galleryImages}
+        onChange={setGalleryImages}
+        folder="rooms"
+        maxImages={undefined}
       />
 
       <AmenitiesManager
