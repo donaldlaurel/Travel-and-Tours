@@ -62,22 +62,22 @@ All text on the homepage has been converted to translation keys for multi-langua
 
 ### Directly in Database
 To add translations via SQL:
-```sql
+\`\`\`sql
 INSERT INTO translations (key, language, value, category) VALUES
 ('home.my_key', 'en', 'English text', 'home'),
 ('home.my_key', 'ko', 'Korean text', 'home')
 ON CONFLICT (key, language) DO NOTHING;
-```
+\`\`\`
 
 ## How It Works
 
 1. **Hardcoded Fallback**: Translation keys are defined in `/lib/language-context.tsx`
 2. **Database Override**: Keys are fetched from the database via `/api/translations`
 3. **Usage in Components**: Use the `useLanguage()` hook to access the `t()` function:
-   ```tsx
+   \`\`\`tsx
    const { t, language } = useLanguage()
    return <h1>{t('home.title')}</h1>
-   ```
+   \`\`\`
 
 ## Troubleshooting
 
@@ -93,19 +93,19 @@ ON CONFLICT (key, language) DO NOTHING;
 
 ### Issue: Hardcoded text still showing
 **Solution**: Make sure the component is using the translation hook:
-```tsx
+\`\`\`tsx
 import { useLanguage } from "@/lib/language-context"
 
 export function MyComponent() {
   const { t } = useLanguage()
   return <div>{t('home.my_key')}</div>
 }
-```
+\`\`\`
 
 ## Database Schema
 
 The `translations` table has the following structure:
-```sql
+\`\`\`sql
 - id (UUID, PRIMARY KEY)
 - key (TEXT) - Translation key
 - language (TEXT) - Language code ('en' or 'ko')
@@ -114,14 +114,14 @@ The `translations` table has the following structure:
 - created_at (TIMESTAMP)
 - updated_at (TIMESTAMP)
 - UNIQUE(key, language)
-```
+\`\`\`
 
 ## Migration Script
 
 To add all homepage translation keys to the database, run:
-```bash
+\`\`\`bash
 /scripts/015-add-homepage-translations.sql
-```
+\`\`\`
 
 This script adds all new translation keys for:
 - Featured Hotels section

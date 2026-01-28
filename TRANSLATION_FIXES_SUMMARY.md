@@ -60,7 +60,7 @@ Plus all existing keys have been maintained and updated:
 5. Click "Create" - automatically saves to database
 
 ### To Use in Components:
-```tsx
+\`\`\`tsx
 import { useLanguage } from "@/lib/language-context"
 
 export function MyComponent() {
@@ -73,14 +73,14 @@ export function MyComponent() {
     </div>
   )
 }
-```
+\`\`\`
 
 ### Database Setup:
 Run the migration script to add all keys to database:
-```bash
+\`\`\`bash
 # Via Supabase SQL Editor
 -- Copy content from /scripts/015-add-homepage-translations.sql
-```
+\`\`\`
 
 ## Translation Hierarchy
 
